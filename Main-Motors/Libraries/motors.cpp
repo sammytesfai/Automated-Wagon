@@ -15,6 +15,8 @@ MOTORS::MOTORS(unsigned int PWM_Right, unsigned int PWM_Left, unsigned int Right
   digitalWrite(RIGHT_BACKWARD_PIN, LOW);
   digitalWrite(LEFT_FORWARD_PIN, LOW);
   digitalWrite(LEFT_BACKWARD_PIN, LOW);
+  SetLeftMotorSpeed(0);
+  SetRightMotorSpeed(0);
 }
 
 void MOTORS::SetLeftMotorSpeed(unsigned int speed)
@@ -93,4 +95,15 @@ void MOTORS::Backward_Left(unsigned int speed)
 
   SetLeftMotorSpeed(speed);
   SetRightMotorSpeed(speed);
+}
+
+void MOTORS::STOP()
+{
+  digitalWrite(LEFT_BACKWARD_PIN, LOW);
+  digitalWrite(LEFT_FORWARD_PIN, LOW);
+  digitalWrite(RIGHT_BACKWARD_PIN, LOW);
+  digitalWrite(RIGHT_FORWARD_PIN, LOW);
+
+  SetLeftMotorSpeed(0);
+  SetRightMotorSpeed(0);
 }

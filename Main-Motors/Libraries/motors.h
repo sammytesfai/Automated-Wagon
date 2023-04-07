@@ -22,6 +22,7 @@ class MOTORS
     void Forward_Left(unsigned int speed);
     void Backward_Right(unsigned int speed);
     void Backward_Left(unsigned int speed);
+    void STOP();
 };
 
 #endif
