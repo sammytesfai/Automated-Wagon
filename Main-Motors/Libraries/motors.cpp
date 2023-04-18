@@ -104,6 +104,6 @@ void MOTORS::STOP()
   digitalWrite(RIGHT_BACKWARD_PIN, LOW);
   digitalWrite(RIGHT_FORWARD_PIN, LOW);
 
-  SetLeftMotorSpeed(0);
-  SetRightMotorSpeed(0);
+  SetLeftMotorSpeed(255);
+  SetRightMotorSpeed(255);
 }
