@@ -1,9 +1,11 @@
+#include <Servo.h>
 #include "Libraries\motors.h"
 #include "Libraries\DFRobotIRPosition.h"
 #include "Libraries\misc.h"
 
 MOTORS M(RIGHTPWM, LEFTPWM, RIGHTFORWARD, RIGHTBACKWARD, LEFTFORWARD, LEFTBACKWARD);
 DFRobotIRPosition myDFRobotIRPosition;
+Servo myServo;
 
 int positionXR[4];     ///< Store the X position
 int positionYR[4];     ///< Store the Y position
@@ -12,6 +14,9 @@ int positionXL[4];     ///< Store the X position
 int positionYL[4];     ///< Store the Y position
 
 int randomarray[] = {300, 600, 500, 900, 1023, 700, 100};
+
+int degree = 0;
+bool dir;
 
 void setup()
 {
@@ -37,10 +42,17 @@ void setup()
   set_pins(1);
   myDFRobotIRPosition.begin();
 
+  // Side US sensor I/O pins
   pinMode(LEFTTRIGGER, OUTPUT);
   pinMode(RIGHTTRIGGER, OUTPUT);
   pinMode(LEFTECHO, INPUT);
   pinMode(RIGHTECHO, INPUT);
+
+  // Radar US sensor I/O pins
+  pinMode(RADARTRIGGER, OUTPUT);
+  pinMode(RADARECHO, INPUT);
+
+  myServo.attach(SERVO);
 }
 
 //void loop()
@@ -62,6 +74,8 @@ void setup()
 
 void loop()
 {
+  myServo.write(degree);
+  
   while(check_sides(LEFTTRIGGER, LEFTECHO, 'L'))
   {
     echo_confidence(LEFTTRIGGER, LEFTECHO, 'L');
@@ -92,7 +106,6 @@ void loop()
 
   // Right Camera
   set_pins(0);
-  delay(50);
   
   myDFRobotIRPosition.requestPosition();
   if (myDFRobotIRPosition.available())
@@ -103,7 +116,7 @@ void loop()
       positionYR[i]=myDFRobotIRPosition.readY(i);
     }
 
-    printResult(positionXR, 1);
+//    printResult(positionXR, 1);
   }
   else
   {
@@ -113,7 +126,6 @@ void loop()
 
   // Left Camera
   set_pins(1);
-  delay(50);
   
   myDFRobotIRPosition.requestPosition();
 
@@ -125,7 +137,7 @@ void loop()
       positionYL[i]=myDFRobotIRPosition.readY(i);
     }
 
-    printResult(positionXL, 2);
+//    printResult(positionXL, 2);
   }
   else
   {
@@ -148,22 +160,13 @@ void loop()
   {
     M.STOP();
   }
-}
 
-// Check bumpers
-//void loop() 
-//{
-//  Serial.println("A");
-//  Serial.println(digitalRead(LEFTBUMPER));
-//  Serial.println("B");
-//  while(digitalRead(LEFTBUMPER))
-//  {
-//    Serial.println(digitalRead(LEFTBUMPER));
-//    M.Backward(255);
-//  }
-//  Serial.println("C");
-//  M.Forward(0);
-//}
+  if(degree == 0) dir = true;
+  else if(degree == RADAR_FIELD_VIEW) dir = false;
+
+  if(dir) degree += RADAR_INCREMENT;
+  else degree -= RADAR_INCREMENT;
+}
 
 //int i = 0;
 //// Check basic movement with 1 second delays

@@ -6,6 +6,8 @@ static int distance;
 static int left_echo [CONFIDENCE_SAMPLE];
 static int right_echo [CONFIDENCE_SAMPLE];
 
+static int radar_echo[CONFIDENCE_SAMPLE][RADAR_FIELD_VIEW];
+
 void set_pins(int flag)
 {
   if(flag)
