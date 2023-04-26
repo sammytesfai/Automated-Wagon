@@ -1,14 +1,17 @@
 #include <ArduinoBLE.h> 
-#include <Wire.h>
+#include <Wire.h> 
 #define BLE_UUID_BUFFER                    "1A3AC132-31ED-758C-BC52-54A61958EF82"
 #define BLE_UUID_STRING                    "F7A99D03-F2CF-4D55-BCF5-5C0BDFC9E055"
 
 
-const int A0_PIN = 11;  // Pin connected to A0 
-const int A1_PIN = 12;  // Pin connected to A1 
-const int A2_PIN = 13;  // Pin connected to A2 
 
-volatile int rssi = 0;
+volatile int distance = 0;
+volatile float distanceArray[3]; 
+volatile int distancePrev = 0; 
+
+volatile int rssi1 = 0;
+volatile int rssi2 = 0;
+
 // Creating BLE service with a UUID of 9A48ECBA... 
 static const char* greeting = "Hello World!";
 BLEService greetingService("9A48ECBA-2E92-082F-C079-9E75AAE428B1");  
@@ -17,25 +20,38 @@ BLEStringCharacteristic greetingCharacteristic("2A56",  // standard 16-bit chara
     BLERead | BLENotify, 13); 
 BLEStringCharacteristic stringCharacteristic( BLE_UUID_STRING, BLERead | BLENotify,200 );
 
+int count = 0; 
+#define NUM_DISTANCES 5
+float distances[NUM_DISTANCES] = {0}; // initialize the last three distances to zero
+int numDistancesReceived = 0; // keep track of the number of distances received so far
 
-
-void receiveOne(){
+void receiveOne() {
   Serial.print("here in one\r\n");
-  Wire.write(rssi); 
+  float distanceSum = 0;
+  // add the latest distance to the distances array and update the numDistancesReceived counter
+  distances[numDistancesReceived] = distance;
+  numDistancesReceived = (numDistancesReceived + 1) % NUM_DISTANCES;
+
+  // calculate the sum of the last three distances
+  for (int i = 0; i < NUM_DISTANCES; i++) {
+    distanceSum += distances[i];
+  }
+  // calculate the average of the last three distances and send it over I2C
+  int averageDistance = distanceSum / NUM_DISTANCES;
+  Serial.print("Distance: ");
+  Serial.print(averageDistance);
+  Serial.print("\r\n"); 
+  Wire.write(averageDistance);
 }
 
 // Defining the pins used for input and output 
 void setup(void)
 {
-  pinMode(A0_PIN, INPUT);
-  pinMode(A1_PIN, INPUT);
-  pinMode(A2_PIN, INPUT);
 
   Serial.begin(9600); 
   Wire.begin(0x91);
   Wire.onRequest(receiveOne); 
-//  while (!Serial);
-
+  
   // Set up the BLE module and advertise the greeting service. 
   if (!BLE.begin()) { 
    Serial.println("starting BLE failed!");
@@ -52,34 +68,32 @@ void setup(void)
   Serial.print("Peripheral device MAC: ");
   Serial.println(BLE.address());
   Serial.println("Waiting for connections...");
-  // sending data over connection  
 }
 
 void loop(void)
 {
+  
   BLEDevice central = BLE.central();  
 
   if (central) {
     Serial.print("Connected to central MAC: ");
     Serial.println(central.address());
-
+    
     while(central.connected()){
-      rssi = central.rssi();      
+      int rssi = central.rssi();  
+      int txPower = -59;
+      int n = 3; 
+      distance = (pow(10.0, (txPower - rssi) / (10.0 * n))) * 100 ;
+      int rssi1 = 0;
+       
       char bleBuffer[200];
       sprintf(bleBuffer, "Hello from Nano33BLE!");
-      Serial.print("RSSI: \r\n");
-      Serial.print(rssi);
       
-//      int ninety = 90; 
-
-      rssi = rssi * - 1; 
-//      Wire.write(rssi);
-      Wire.endTransmission();
-//      if (Wire.available() == 1){
-//        Serial.print(Wire.read()); 
-//      }
-
+//      Serial.print("  RSSI3: "); 
+//      Serial.print(rssi);
+//      Serial.print("\r\n");
       
+
       stringCharacteristic.writeValue(bleBuffer);
       memset(bleBuffer, 0, 200); 
       delay(250);
