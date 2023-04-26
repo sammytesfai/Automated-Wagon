@@ -1,0 +1,91 @@
+#include <ArduinoBLE.h> 
+#include <Wire.h>
+#define BLE_UUID_BUFFER                    "1A3AC132-31ED-758C-BC52-54A61958EF82"
+#define BLE_UUID_STRING                    "F7A99D03-F2CF-4D55-BCF5-5C0BDFC9E055"
+
+
+const int A0_PIN = 11;  // Pin connected to A0 
+const int A1_PIN = 12;  // Pin connected to A1 
+const int A2_PIN = 13;  // Pin connected to A2 
+
+volatile int rssi = 0;
+// Creating BLE service with a UUID of 9A48ECBA... 
+static const char* greeting = "Hello World!";
+BLEService greetingService("9A48ECBA-2E92-082F-C079-9E75AAE428B1");  
+
+BLEStringCharacteristic greetingCharacteristic("2A56",  // standard 16-bit characteristic UUID
+    BLERead | BLENotify, 13); 
+BLEStringCharacteristic stringCharacteristic( BLE_UUID_STRING, BLERead | BLENotify,200 );
+
+
+
+void receiveOne(){
+  Serial.print("here in one\r\n");
+  Wire.write(rssi); 
+}
+
+// Defining the pins used for input and output 
+void setup(void)
+{
+  pinMode(A0_PIN, INPUT);
+  pinMode(A1_PIN, INPUT);
+  pinMode(A2_PIN, INPUT);
+
+  Serial.begin(9600); 
+  Wire.begin(0x91);
+  Wire.onRequest(receiveOne); 
+//  while (!Serial);
+
+  // Set up the BLE module and advertise the greeting service. 
+  if (!BLE.begin()) { 
+   Serial.println("starting BLE failed!");
+   while(1);
+  }
+  BLE.setLocalName("Nano33BLENumberTwo");  
+  BLE.setAdvertisedService(greetingService); 
+  greetingService.addCharacteristic(greetingCharacteristic); 
+  greetingService.addCharacteristic(stringCharacteristic);
+  BLE.addService(greetingService); 
+  greetingCharacteristic.setValue(greeting); 
+
+  BLE.advertise();  // Start advertising
+  Serial.print("Peripheral device MAC: ");
+  Serial.println(BLE.address());
+  Serial.println("Waiting for connections...");
+  // sending data over connection  
+}
+
+void loop(void)
+{
+  BLEDevice central = BLE.central();  
+
+  if (central) {
+    Serial.print("Connected to central MAC: ");
+    Serial.println(central.address());
+
+    while(central.connected()){
+      rssi = central.rssi();      
+      char bleBuffer[200];
+      sprintf(bleBuffer, "Hello from Nano33BLE!");
+      Serial.print("RSSI: \r\n");
+      Serial.print(rssi);
+      
+//      int ninety = 90; 
+
+      rssi = rssi * - 1; 
+//      Wire.write(rssi);
+      Wire.endTransmission();
+//      if (Wire.available() == 1){
+//        Serial.print(Wire.read()); 
+//      }
+
+      
+      stringCharacteristic.writeValue(bleBuffer);
+      memset(bleBuffer, 0, 200); 
+      delay(250);
+    }
+
+    Serial.print("Disconnected from central MAC: ");
+    Serial.println(central.address());
+  }
+}
