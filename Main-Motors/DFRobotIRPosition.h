@@ -21,30 +21,9 @@ class DFRobotIRPosition {
 
   const int IRAddress = 0xB0 >> 1; ///< IIC address of the sensor
   
-  /*!
-   *  @brief position data structure from IIC sensor
-   */
-  union PositionData {
-    uint8_t receivedBuffer[16]; ///< received buffer for IIC read
-    struct{
-      uint8_t header;
-      struct{
-        uint8_t xLowByte;  ///< position x low byte.
-        uint8_t yLowByte;  ///< position y low byte.
-        uint8_t xyHighByte;  ///< position x and y high byte.
-      }__attribute__ ((packed)) rawPosition[4];   ///< 4 raw positions.
-    }__attribute__ ((packed))positionFrame;
-  }__attribute__ ((packed)) positionData;
-  
   int positionX[4];   ///< position x.
   int positionY[4];   ///< position y.
   
-  /*!
-   *  @brief write two byte into the sensor to initialize and send data.
-   *
-   *  @param first  the first byte
-   *  @param second the second byte
-   */
   void writeTwoIICByte(uint8_t first, uint8_t second);
 
 public:

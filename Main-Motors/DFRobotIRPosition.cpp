@@ -33,7 +33,6 @@ void DFRobotIRPosition::writeTwoIICByte(uint8_t first, uint8_t second)
 
 void DFRobotIRPosition::begin()
 {
-  Wire.begin();
   writeTwoIICByte(0x30,0x01);
   delay(10);
   writeTwoIICByte(0x30,0x08);
@@ -60,26 +59,38 @@ void DFRobotIRPosition::requestPosition()
 
 bool DFRobotIRPosition::available()
 {
-  if (Wire.available() == 16) {   //read only the data lenth fits.
-    for (int i=0; i<16; i++) {
-      positionData.receivedBuffer[i]=Wire.read();
-    }
-    
-    for (int i=0; i<4; i++) {
-      positionX[i] = (uint16_t)(positionData.positionFrame.rawPosition[i].xLowByte)
-      + ((uint16_t)(positionData.positionFrame.rawPosition[i].xyHighByte & 0x30U) << 4);
+  uint8_t i = 0, s = 0, data_buf[16];
+  while(Wire.available() && i < 16)
+  {
+    data_buf[i] = Wire.read();
+    i++;
+  }
+  if(i == 0) return false;
 
-      positionY[i] = (uint16_t)(positionData.positionFrame.rawPosition[i].yLowByte)
-      + ((uint16_t)(positionData.positionFrame.rawPosition[i].xyHighByte & 0xC0U) << 2);
-    }
-    return true;
-  }
-  else{   //otherwise skip them.
-    while (Wire.available()) {
-      Wire.read();
-    }
-    return false;
-  }
+  positionX[0] = data_buf[1];
+  positionY[0] = data_buf[2];
+  s   = data_buf[3];
+  positionX[0] += (s & 0x30) <<4;
+  positionY[0] += (s & 0xC0) <<2;
+
+  positionX[1] = data_buf[4];
+  positionY[1] = data_buf[5];
+  s   = data_buf[6];
+  positionX[1] += (s & 0x30) <<4;
+  positionY[1] += (s & 0xC0) <<2;
+
+  positionX[2] = data_buf[7];
+  positionY[2] = data_buf[8];
+  s   = data_buf[9];
+  positionX[2] += (s & 0x30) <<4;
+  positionY[2] += (s & 0xC0) <<2;
+
+  positionX[3] = data_buf[10];
+  positionY[3] = data_buf[11];
+  s   = data_buf[12];
+  positionX[3] += (s & 0x30) <<4;
+  positionY[3] += (s & 0xC0) <<2;
+  return true;
 }
 
 int DFRobotIRPosition::readX(int index)

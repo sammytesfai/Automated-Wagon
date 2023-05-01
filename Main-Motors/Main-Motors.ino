@@ -1,33 +1,23 @@
-#include <Servo.h>
-#include "Libraries\motors.h"
-#include "Libraries\DFRobotIRPosition.h"
-#include "Libraries\misc.h"
+#include <Wire.h>
+#include "motors.h"
+#include "DFRobotIRPosition.h"
+#include "misc.h"
 
 MOTORS M(RIGHTPWM, LEFTPWM, RIGHTFORWARD, RIGHTBACKWARD, LEFTFORWARD, LEFTBACKWARD);
 DFRobotIRPosition myDFRobotIRPosition;
-Servo myServo;
 
-int positionXR[4];     ///< Store the X position
-int positionYR[4];     ///< Store the Y position
-
-int positionXL[4];     ///< Store the X position
-int positionYL[4];     ///< Store the Y position
+// Store X & Y position for both cameras
+int positionXR, positionYR, positionXL, positionYL;
 
 int randomarray[] = {300, 600, 500, 900, 1023, 700, 100};
 
-int degree = 0;
-bool dir;
+int shift = 0;
+int rssi = 0;
 
 void setup()
 {
   Serial.begin(115200);
-  // Right Motor
-  pinMode(RIGHTMOTORENCODERA, INPUT);
-  pinMode(RIGHTMOTORENCODERB, INPUT);
-
-  // Left Motor
-  pinMode(LEFTMOTORENCODERB, INPUT);
-  pinMode(LEFTMOTORENCODERA, INPUT);
+  Wire.begin();
 
   pinMode(CAMERA_SEL_A0, OUTPUT);
   pinMode(CAMERA_SEL_A1, OUTPUT);
@@ -47,12 +37,14 @@ void setup()
   pinMode(RIGHTTRIGGER, OUTPUT);
   pinMode(LEFTECHO, INPUT);
   pinMode(RIGHTECHO, INPUT);
+  
+  // FRONT US sensor I/O pins
+  pinMode(FRONTLEFTTRIG, OUTPUT);
+  pinMode(FRONTLEFTECHO, INPUT);
+  pinMode(FRONTRIGHTTRIG, OUTPUT);
+  pinMode(FRONTRIGHTECHO, INPUT);
 
-  // Radar US sensor I/O pins
-  pinMode(RADARTRIGGER, OUTPUT);
-  pinMode(RADARECHO, INPUT);
-
-  myServo.attach(SERVO);
+  echo_init();
 }
 
 //void loop()
@@ -74,48 +66,40 @@ void setup()
 
 void loop()
 {
-  myServo.write(degree);
-  
-  while(check_sides(LEFTTRIGGER, LEFTECHO, 'L'))
+  while(check_front_sensors())
   {
-    echo_confidence(LEFTTRIGGER, LEFTECHO, 'L');
-    if(echo_avg('L') < DISTANCE)
-    {
-      M.Forward_Left(255);
-      Serial.println("LEFT");
-      delay(100);
-      M.Backward(255);
-      Serial.println("Forward");
-      delay(100);
-    }
+    M.STOP();
+  }
+  while(echo_confidence(LEFTTRIGGER, LEFTECHO, 'L') < SIDE_DISTANCE)
+  {
+    M.Forward_Left(255);
+    Serial.println("LEFT");
+    delay(150);
+    M.Backward(255);
+    Serial.println("Forward");
+    delay(150);
   }
 
-  while(check_sides(RIGHTTRIGGER, RIGHTECHO, 'R'))
+  while(echo_confidence(RIGHTTRIGGER, RIGHTECHO, 'R') < SIDE_DISTANCE)
   {
-    echo_confidence(RIGHTTRIGGER, RIGHTECHO, 'R');
-    if(echo_avg('R') < DISTANCE)
-    {
-      M.Forward_Right(255);
-      Serial.println("RIGHT");
-      delay(100);
-      M.Backward(255);
-      Serial.println("Forward");
-      delay(100);
-    }
+    M.Forward_Right(255);
+    Serial.println("RIGHT");
+    delay(150);
+    M.Backward(255);
+    Serial.println("Forward");
+    delay(150);
   }
 
   // Right Camera
   set_pins(0);
+  delay(25);
   
   myDFRobotIRPosition.requestPosition();
+  delay(25);
   if (myDFRobotIRPosition.available())
   {
-    for (int i=0; i<4; i++)
-    {
-      positionXR[i]=myDFRobotIRPosition.readX(i);
-      positionYR[i]=myDFRobotIRPosition.readY(i);
-    }
-
+    positionXR = myDFRobotIRPosition.readX(0);
+    positionYR = myDFRobotIRPosition.readY(0);
 //    printResult(positionXR, 1);
   }
   else
@@ -126,17 +110,14 @@ void loop()
 
   // Left Camera
   set_pins(1);
+  delay(25);
   
   myDFRobotIRPosition.requestPosition();
-
+  delay(25);
   if (myDFRobotIRPosition.available()) 
   {
-    for (int i=0; i<4; i++) 
-    {
-      positionXL[i]=myDFRobotIRPosition.readX(i);
-      positionYL[i]=myDFRobotIRPosition.readY(i);
-    }
-
+    positionXL = myDFRobotIRPosition.readX(0);
+    positionYL = myDFRobotIRPosition.readY(0);
 //    printResult(positionXL, 2);
   }
   else
@@ -144,28 +125,31 @@ void loop()
     Serial.println("Device not available!");
   }
 
-  if(positionXR[0] > 300 && positionXR[0] < 1000 && positionXL[0] > 300 && positionXL[0] < 1000)
-  {
-    M.Backward(255);
-  }
-  else if(positionXR[0] < 300)
-  {
-    M.Forward_Right(255);
-  }
-  else if(positionXL[0] < 300)
-  {
-    M.Forward_Left(255);
-  }
-  else
-  {
-    M.STOP();
-  }
+  perform_movement();
 
-  if(degree == 0) dir = true;
-  else if(degree == RADAR_FIELD_VIEW) dir = false;
+//  Serial.println("Arduino1");
+  Wire.requestFrom(0x9,4);
+  while(Wire.available())
+  {
+    rssi += Wire.read() << shift;
+    shift += 8;
+  }
+//  Serial.println(rssi);
+  rssi = 0;
+  shift = 0;
+//  delay(100);
 
-  if(dir) degree += RADAR_INCREMENT;
-  else degree -= RADAR_INCREMENT;
+//  Serial.println("Arduino2");
+  Wire.requestFrom(0x91,4);
+  while(Wire.available())
+  {
+    rssi += Wire.read() << shift;
+    shift += 8;
+  }
+//  Serial.println(rssi);
+  rssi = 0;
+  shift = 0;
+//  delay(100);
 }
 
 //int i = 0;
@@ -195,5 +179,22 @@ void loop()
 //}
 
 
-
-
+void perform_movement()
+{
+  if(positionXR > 300 && positionXR < 1000 && positionXL > 300 && positionXL < 1000)
+  {
+    M.Backward(255);
+  }
+  else if(positionXR < 300)
+  {
+    M.Forward_Right(255);
+  }
+  else if(positionXL < 300)
+  {
+    M.Forward_Left(255);
+  }
+  else
+  {
+    M.STOP();
+  }
+}
