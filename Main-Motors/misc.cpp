@@ -8,7 +8,7 @@ static int right_echo [CONFIDENCE_SAMPLE];
 static int front_left_echo [CONFIDENCE_SAMPLE];
 static int front_right_echo [CONFIDENCE_SAMPLE];
 
-
+// Selector Functions for Cameras
 void set_pins(int flag)
 {
   if(flag)
@@ -42,6 +42,7 @@ void printResult(int *positionX, int num)
   Serial.println();
 }
 
+// Get new US value from sensor
 int check_US(int trig, int echo, char side)
 {
   digitalWrite(trig, LOW);
@@ -70,6 +71,7 @@ int check_US(int trig, int echo, char side)
   return distance;
 }
 
+// Retain state of previous US values and returnn avg
 int echo_confidence(int trig, int echo, char side)
 {
   for(int i = 1; i < CONFIDENCE_SAMPLE; i++)
@@ -95,6 +97,7 @@ int echo_confidence(int trig, int echo, char side)
   return echo_avg(trig, side);
 }
 
+// Calcualtes avg of a specific US sensor
 int echo_avg(int trig, char side)
 {
   int total = 0;
@@ -115,6 +118,7 @@ int echo_avg(int trig, char side)
   return total/CONFIDENCE_SAMPLE;
 }
 
+// Get intial sample of robots surroundings
 void echo_init()
 {
   echo_confidence(LEFTTRIGGER, LEFTECHO, 'L');
@@ -136,6 +140,7 @@ void echo_init()
   echo_confidence(FRONTRIGHTTRIG, FRONTRIGHTECHO, 'R');
 }
 
+// Checks to see if object is detected in front of Robot
 bool check_front_sensors()
 {
   if(echo_confidence(FRONTLEFTTRIG, FRONTLEFTECHO, 'L') < FRONT_DISTANCE)
