@@ -141,11 +141,15 @@ void echo_init()
 }
 
 // Checks to see if object is detected in front of Robot
-bool check_front_sensors()
+char check_front_sensors()
 {
   if(echo_confidence(FRONTLEFTTRIG, FRONTLEFTECHO, 'L') < FRONT_DISTANCE)
-    return true;
+    return 'L';
   if(echo_confidence(FRONTRIGHTTRIG, FRONTRIGHTECHO, 'R') < FRONT_DISTANCE)
-    return true;
-  return false;
+    return 'R';
+  return NULL;
 }
+
+
+
+

@@ -35,9 +35,9 @@
 #define FRONTRIGHTECHO 28
 
 // Values to define distane from US sensors and confidence samples
-#define CONFIDENCE_SAMPLE 3
+#define CONFIDENCE_SAMPLE 5
 #define SIDE_DISTANCE 8
-#define FRONT_DISTANCE 20
+#define FRONT_DISTANCE 30
 
 
 void set_pins(int flag);
@@ -46,5 +46,5 @@ int check_US(int trig, int echo, char side);
 int echo_confidence(int trig, int echo, char side);
 int echo_avg(int trig, char side);
 void echo_init();
-bool check_front_sensors();
+char check_front_sensors();
 #endif

@@ -13,6 +13,7 @@ int randomarray[] = {300, 600, 500, 900, 1023, 700, 100};
 
 int shift = 0;
 int rssi = 0;
+char front_sensor_side;
 
 void setup()
 {
@@ -47,29 +48,30 @@ void setup()
   echo_init();
 }
 
-//void loop()
-//{
-//  delay(50);
-//  myDFRobotIRPosition.requestPosition();
-//
-//  if (myDFRobotIRPosition.available()) 
-//  {
-//    for (int i=0; i<4; i++) 
-//    {
-//      positionXL[i]=myDFRobotIRPosition.readX(i);
-//      positionYL[i]=myDFRobotIRPosition.readY(i);
-//    }
-//
-//    printResult(positionXL, 2);
-//  }
-//}
-
 void loop()
 {
-  while(check_front_sensors())
+  while((front_sensor_side = check_front_sensors()) != NULL)
   {
-    M.STOP();
+    if(front_sensor_side == 'R')
+    {
+      M.Forward_Right(255);
+      delay(600);
+      M.Backward(255);
+      delay(1000);
+      M.Forward_Left(255);
+      delay(600);
+    }
+    else
+    {
+      M.Forward_Left(255);
+      delay(600);
+      M.Backward(255);
+      delay(1000);
+      M.Forward_Right(255);
+      delay(600);
+    }
   }
+  
   while(echo_confidence(LEFTTRIGGER, LEFTECHO, 'L') < SIDE_DISTANCE)
   {
     M.Forward_Left(255);
@@ -93,37 +95,12 @@ void loop()
   // Right Camera
   set_pins(0);
   delay(25);
-  
-  myDFRobotIRPosition.requestPosition();
-  delay(25);
-  if (myDFRobotIRPosition.available())
-  {
-    positionXR = myDFRobotIRPosition.readX(0);
-    positionYR = myDFRobotIRPosition.readY(0);
-//    printResult(positionXR, 1);
-  }
-  else
-  {
-    Serial.println("Device not available!");
-  }
-
+  get_camera_vals('R');
 
   // Left Camera
   set_pins(1);
   delay(25);
-  
-  myDFRobotIRPosition.requestPosition();
-  delay(25);
-  if (myDFRobotIRPosition.available()) 
-  {
-    positionXL = myDFRobotIRPosition.readX(0);
-    positionYL = myDFRobotIRPosition.readY(0);
-//    printResult(positionXL, 2);
-  }
-  else
-  {
-    Serial.println("Device not available!");
-  }
+  get_camera_vals('L');
 
   perform_movement();
 
@@ -152,32 +129,29 @@ void loop()
 //  delay(100);
 }
 
-//int i = 0;
-//// Check basic movement with 1 second delays
-//void loop()
-//{
-//  Serial.println(i);
-//  int pos = randomarray[i];
-//  if(pos < 300 && pos > 0)
-//  {
-//    M.Forward_Left(255);
-//  }
-//  else if(pos > 700 && pos < 1000)
-//  {
-//    M.Forward_Right(255);
-//  }
-//  else if(pos >= 300 && pos <= 700)
-//  {
-//    M.Backward(255);
-//  }
-//  else
-//  {
-//    M.STOP();
-//  }
-//  delay(1000);
-//  i = (i+1)%7;
-//}
-
+bool get_camera_vals(char side)
+{
+  myDFRobotIRPosition.requestPosition();
+  delay(25);
+  if (myDFRobotIRPosition.available())
+  {
+    if(side == 'R')
+    {
+      positionXR = myDFRobotIRPosition.readX(0);
+      positionYR = myDFRobotIRPosition.readY(0);
+//        printResult(positionXR, 1);
+    }
+    else
+    {
+      positionXL = myDFRobotIRPosition.readX(0);
+      positionYL = myDFRobotIRPosition.readY(0);
+//        printResult(positionXL, 2);
+    }
+    return true;
+  }
+  Serial.println("Device not available!");
+  return false;
+}
 
 void perform_movement()
 {
