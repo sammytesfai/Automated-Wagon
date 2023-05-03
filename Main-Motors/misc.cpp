@@ -7,6 +7,7 @@ static int left_echo [CONFIDENCE_SAMPLE];
 static int right_echo [CONFIDENCE_SAMPLE];
 static int front_left_echo [CONFIDENCE_SAMPLE];
 static int front_right_echo [CONFIDENCE_SAMPLE];
+static int front_echo [CONFIDENCE_SAMPLE];
 
 // Selector Functions for Cameras
 void set_pins(int flag)
@@ -27,19 +28,11 @@ void set_pins(int flag)
   }
 }
 
-void printResult(int *positionX, int num)
+void printResult(int positionX, int num)
 {
   if(num == 1) Serial.print("Camera1: ");
   else Serial.print("Camera2: ");
-  for (int i=0; i<4; i++) 
-  {
-    Serial.print(positionX[i]);
-    Serial.print(",");
-            
-    Serial.print(positionX[i]);
-    Serial.print(";");
-  }
-  Serial.println();
+  Serial.print(positionX);
 }
 
 // Get new US value from sensor
@@ -68,6 +61,8 @@ int check_US(int trig, int echo, char side)
     else
       right_echo[0] = distance;
   }
+  else
+    front_echo[0] = distance;
   return distance;
 }
 
@@ -90,10 +85,12 @@ int echo_confidence(int trig, int echo, char side)
       else
         right_echo[CONFIDENCE_SAMPLE-i] = right_echo[CONFIDENCE_SAMPLE-i-1];
     }
+    else
+      front_echo[CONFIDENCE_SAMPLE-i] = front_echo[CONFIDENCE_SAMPLE-i-1];
   }
 
+
   check_US(trig, echo, side);
-  Serial.println(echo_avg(trig, side));
   return echo_avg(trig, side);
 }
 
@@ -108,18 +105,20 @@ int echo_avg(int trig, char side)
     else
       for(int i = 0; i < CONFIDENCE_SAMPLE; i++) total += left_echo[i];
   }
-  else 
+  else if(side == 'R')
   {
     if(trig == FRONTRIGHTTRIG)
       for(int i = 0; i < CONFIDENCE_SAMPLE; i++) total += front_right_echo[i];
     else
       for(int i = 0; i < CONFIDENCE_SAMPLE; i++) total += right_echo[i];
   }
+  else
+    for(int i = 0; i < CONFIDENCE_SAMPLE; i++) total += front_echo[i];
   return total/CONFIDENCE_SAMPLE;
 }
 
 // Get intial sample of robots surroundings
-void echo_init()
+void echo_sample_refresh()
 {
   echo_confidence(LEFTTRIGGER, LEFTECHO, 'L');
   echo_confidence(RIGHTTRIGGER, RIGHTECHO, 'R');
@@ -138,18 +137,22 @@ void echo_init()
   echo_confidence(FRONTRIGHTTRIG, FRONTRIGHTECHO, 'R');
   echo_confidence(FRONTLEFTTRIG, FRONTLEFTECHO, 'L');
   echo_confidence(FRONTRIGHTTRIG, FRONTRIGHTECHO, 'R');
+
+  // echo_confidence(FRONTTRIG, FRONTECHO, 'F');
+  // echo_confidence(FRONTTRIG, FRONTECHO, 'F');
+  // echo_confidence(FRONTTRIG, FRONTECHO, 'F');
+  // echo_confidence(FRONTTRIG, FRONTECHO, 'F');
 }
 
 // Checks to see if object is detected in front of Robot
 char check_front_sensors()
 {
+  echo_sample_refresh();
   if(echo_confidence(FRONTLEFTTRIG, FRONTLEFTECHO, 'L') < FRONT_DISTANCE)
     return 'L';
-  if(echo_confidence(FRONTRIGHTTRIG, FRONTRIGHTECHO, 'R') < FRONT_DISTANCE)
+  else if(echo_confidence(FRONTRIGHTTRIG, FRONTRIGHTECHO, 'R') < FRONT_DISTANCE)
     return 'R';
+  // else if(echo_confidence(FRONTTRIG, FRONTECHO, 'F') < FRONT_DISTANCE)
+  //   return 'F';
   return NULL;
 }
-
-
-
-

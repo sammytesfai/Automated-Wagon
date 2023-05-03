@@ -33,6 +33,8 @@
 #define FRONTLEFTECHO 8
 #define FRONTRIGHTTRIG 29
 #define FRONTRIGHTECHO 28
+#define FRONTTRIG 35
+#define FRONTECHO 36
 
 // Values to define distane from US sensors and confidence samples
 #define CONFIDENCE_SAMPLE 5
@@ -41,10 +43,10 @@
 
 
 void set_pins(int flag);
-void printResult(int *positionX, int num);
+void printResult(int positionX, int num);
 int check_US(int trig, int echo, char side);
 int echo_confidence(int trig, int echo, char side);
 int echo_avg(int trig, char side);
-void echo_init();
+void echo_sample_refresh();
 char check_front_sensors();
 #endif
