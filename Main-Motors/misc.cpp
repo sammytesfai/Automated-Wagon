@@ -91,6 +91,7 @@ int echo_confidence(int trig, int echo, char side)
 
 
   check_US(trig, echo, side);
+  Serial.println(echo_avg(trig, side));
   return echo_avg(trig, side);
 }
 
@@ -138,10 +139,10 @@ void echo_sample_refresh()
   echo_confidence(FRONTLEFTTRIG, FRONTLEFTECHO, 'L');
   echo_confidence(FRONTRIGHTTRIG, FRONTRIGHTECHO, 'R');
 
-  // echo_confidence(FRONTTRIG, FRONTECHO, 'F');
-  // echo_confidence(FRONTTRIG, FRONTECHO, 'F');
-  // echo_confidence(FRONTTRIG, FRONTECHO, 'F');
-  // echo_confidence(FRONTTRIG, FRONTECHO, 'F');
+  echo_confidence(FRONTTRIG, FRONTECHO, 'F');
+  echo_confidence(FRONTTRIG, FRONTECHO, 'F');
+  echo_confidence(FRONTTRIG, FRONTECHO, 'F');
+  echo_confidence(FRONTTRIG, FRONTECHO, 'F');
 }
 
 // Checks to see if object is detected in front of Robot
@@ -152,7 +153,7 @@ char check_front_sensors()
     return 'L';
   else if(echo_confidence(FRONTRIGHTTRIG, FRONTRIGHTECHO, 'R') < FRONT_DISTANCE)
     return 'R';
-  // else if(echo_confidence(FRONTTRIG, FRONTECHO, 'F') < FRONT_DISTANCE)
-  //   return 'F';
+  else if(echo_confidence(FRONTTRIG, FRONTECHO, 'F') < FRONT_DISTANCE)
+    return 'F';
   return NULL;
 }

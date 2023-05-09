@@ -7,10 +7,9 @@ MOTORS M(RIGHTPWM, LEFTPWM, RIGHTFORWARD, RIGHTBACKWARD, LEFTFORWARD, LEFTBACKWA
 DFRobotIRPosition myDFRobotIRPosition;
 
 // Store X & Y position for both cameras
-//int positionXR[CONFIDENCE_SAMPLE], positionXL[CONFIDENCE_SAMPLE];
 int positionXR, positionXL;
+int oldpositionXR, oldpositionXL;
 
-int randomarray[] = {300, 600, 500, 900, 1023, 700, 100};
 
 int rssi_distance1 = 0, rssi_distance2 = 0, rssi_distance3 = 0;
 bool left_camera, right_camera;
@@ -47,25 +46,23 @@ void setup()
   pinMode(FRONTRIGHTECHO, INPUT);
 
   // Front US sensor I/O pins
-//  pinMode(FRONTTRIG, OUTPUT);
-//  pinMode(FRONTECHO, INPUT);
+  pinMode(FRONTTRIG, OUTPUT);
+  pinMode(FRONTECHO, INPUT);
 
   echo_sample_refresh();
 }
 
-// void loop()
-// {
-//   digitalWrite(FRONTTRIG, LOW);
-//   delayMicroseconds(2);
-
-//   digitalWrite(FRONTTRIG, HIGH);
-//   delayMicroseconds(10);
-//   digitalWrite(FRONTTRIG, LOW);
-
-//   int duration = pulseIn(FRONTECHO, HIGH);
-//   int distance = duration*0.034/2;
-//   Serial.println(distance);
-// }
+//void loop()
+//{
+//  Wire.requestFrom(0x92,1);
+//  while(Wire.available())
+//  {
+//    Serial.println("Available");
+//    rssi_distance1 = Wire.read();
+//  }
+//  Serial.print("Arduino1: ");
+//  Serial.println(rssi_distance1);
+//}
 
 void loop()
 {
@@ -160,27 +157,24 @@ void loop()
  {
    rssi_distance1 = Wire.read();
  }
-//  Serial.print("Arduino1: ");
-//  Serial.println(rssi_distance1);
+  Serial.print("Arduino1: ");
+  Serial.println(rssi_distance1);
 
  Wire.requestFrom(0x91,1);
  while(Wire.available())
  {
    rssi_distance2 = Wire.read();
  }
-//  Serial.print("Arduino2: ");
-//  Serial.println(rssi_distance2);
+  Serial.print("Arduino2: ");
+  Serial.println(rssi_distance2);
 
  Wire.requestFrom(0x92,1);
  while(Wire.available())
  {
    rssi_distance3 = Wire.read();
  }
-//  Serial.print("Arduino3: ");
-//  Serial.println(rssi_distance3);
-//  int avg = (rssi_distance1+rssi_distance2+rssi_distance3)/3;
-//  Serial.print("Average Distance: ");
-//  Serial.println(avg);
+  Serial.print("Arduino3: ");
+  Serial.println(rssi_distance3);
 }
 
 bool get_camera_vals(char side)
@@ -193,15 +187,11 @@ bool get_camera_vals(char side)
    {
       positionXR = myDFRobotIRPosition.readX(0);
       printResult(positionXR, 1);
-//     update_camera(positionXR, myDFRobotIRPosition.readX(0));
-//     printResult(camera_avg(positionXR), 1);
    }
    else
    {
       positionXL = myDFRobotIRPosition.readX(0);
       printResult(positionXL, 2);
-//     update_camera(positionXL, myDFRobotIRPosition.readX(0));
-//     printResult(camera_avg(positionXL), 2);
    }
     Serial.println();
    return true;
@@ -219,18 +209,24 @@ bool perform_movement()
 {
   if(positionXR > 300 && positionXR < 1000 && positionXL > 300 && positionXL < 1000)
   {
+    Serial.println("User Acquired");
     M.Backward(255);
   }
   else if(positionXR < 300)
   {
+    Serial.println("User Acquired");
     M.Forward_Right(255);
   }
   else if(positionXL < 300)
   {
+    Serial.println("User Acquired");
     M.Forward_Left(255);
   }
   else
   {
+    Serial.println("User Lost");
+    oldpositionXR = positionXR;
+    oldpositionXL = positionXL;
     return false;
   }
   return true;
@@ -282,11 +278,11 @@ void lost_mode()
         dir_time = millis();
 
       if((millis() - dir_time) < 2000)
-        M.Backward(128);
+        M.Backward(200);
       else if((millis() - dir_time) < 3000)
-        M.Forward_Right(128);
+        M.Forward_Right(200);
       else if((millis() - dir_time) < 5000)
-        M.Forward_Left(128);
+        M.Forward_Left(200);
 
       while((front_sensor_side = check_front_sensors()) != NULL)
       {
@@ -344,23 +340,4 @@ void lost_mode()
       }
     }
   }
-}
-
-int update_camera(int *positionX, int new_val)
-{
-  for(int i = 1; i < CONFIDENCE_SAMPLE; i++)
-  {
-    positionX[CONFIDENCE_SAMPLE-i] = positionX[CONFIDENCE_SAMPLE-i-1];
-  }
-  positionX[0] = new_val;
-}
-
-int camera_avg(int *positionX)
-{
-  int total = 0;
-  for(int i = 0; i < CONFIDENCE_SAMPLE; i++)
-  {
-    total += positionX[i];
-  }
-  return total/CONFIDENCE_SAMPLE;
 }
