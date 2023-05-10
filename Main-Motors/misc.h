@@ -41,7 +41,7 @@
 
 
 void set_pins(int flag);
-void printResult(int *positionX, int num);
+void printResult(int positionX, int num);
 int check_US(int trig, int echo, char side);
 int echo_confidence(int trig, int echo, char side);
 int echo_avg(int trig, char side);

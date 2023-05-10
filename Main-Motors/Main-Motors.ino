@@ -45,53 +45,11 @@ void setup()
   pinMode(FRONTRIGHTTRIG, OUTPUT);
   pinMode(FRONTRIGHTECHO, INPUT);
 
-  echo_init();
+//  echo_init();
 }
 
 void loop()
 {
-  while((front_sensor_side = check_front_sensors()) != NULL)
-  {
-    if(front_sensor_side == 'R')
-    {
-      M.Forward_Right(255);
-      delay(600);
-      M.Backward(255);
-      delay(1000);
-      M.Forward_Left(255);
-      delay(600);
-    }
-    else
-    {
-      M.Forward_Left(255);
-      delay(600);
-      M.Backward(255);
-      delay(1000);
-      M.Forward_Right(255);
-      delay(600);
-    }
-  }
-  
-  while(echo_confidence(LEFTTRIGGER, LEFTECHO, 'L') < SIDE_DISTANCE)
-  {
-    M.Forward_Left(255);
-    Serial.println("LEFT");
-    delay(150);
-    M.Backward(255);
-    Serial.println("Forward");
-    delay(150);
-  }
-
-  while(echo_confidence(RIGHTTRIGGER, RIGHTECHO, 'R') < SIDE_DISTANCE)
-  {
-    M.Forward_Right(255);
-    Serial.println("RIGHT");
-    delay(150);
-    M.Backward(255);
-    Serial.println("Forward");
-    delay(150);
-  }
-
   // Right Camera
   set_pins(0);
   delay(25);
@@ -101,33 +59,92 @@ void loop()
   set_pins(1);
   delay(25);
   get_camera_vals('L');
-
+  
   perform_movement();
-
-//  Serial.println("Arduino1");
-  Wire.requestFrom(0x9,4);
-  while(Wire.available())
-  {
-    rssi += Wire.read() << shift;
-    shift += 8;
-  }
-//  Serial.println(rssi);
-  rssi = 0;
-  shift = 0;
-//  delay(100);
-
-//  Serial.println("Arduino2");
-  Wire.requestFrom(0x91,4);
-  while(Wire.available())
-  {
-    rssi += Wire.read() << shift;
-    shift += 8;
-  }
-//  Serial.println(rssi);
-  rssi = 0;
-  shift = 0;
-//  delay(100);
+  delay(1000);
 }
+
+
+//void loop()
+//{
+//  while((front_sensor_side = check_front_sensors()) != NULL)
+//  {
+//    if(front_sensor_side == 'R')
+//    {
+//      M.Forward_Left(255);
+//      delay(600);
+//      M.Forward(255);
+//      delay(1000);
+//      M.Forward_Right(255);
+//      delay(600);
+//    }
+//    else
+//    {
+//      M.Forward_Right(255);
+//      delay(600);
+//      M.Forward(255);
+//      delay(1000);
+//      M.Forward_Left(255);
+//      delay(600);
+//    }
+//  }
+//  
+//  while(echo_confidence(LEFTTRIGGER, LEFTECHO, 'L') < SIDE_DISTANCE)
+//  {
+//    M.Forward_Right(255);
+//    Serial.println("RIGHT");
+//    delay(150);
+//    M.Forward(255);
+//    Serial.println("Forward");
+//    delay(150);
+//  }
+//
+//  while(echo_confidence(RIGHTTRIGGER, RIGHTECHO, 'R') < SIDE_DISTANCE)
+//  {
+//    M.Forward_Left(255);
+//    Serial.println("LEFT");
+//    delay(150);
+//    M.Forward(255);
+//    Serial.println("Forward");
+//    delay(150);
+//  }
+//
+//  // Right Camera
+//  set_pins(0);
+//  delay(25);
+//  get_camera_vals('R');
+//
+//  // Left Camera
+//  set_pins(1);
+//  delay(25);
+//  get_camera_vals('L');
+//
+//  perform_movement();
+//
+////  Serial.println("Arduino1");
+//  Wire.requestFrom(0x9,4);
+//  while(Wire.available())
+//  {
+//    rssi += Wire.read() << shift;
+//    shift += 8;
+//  }
+////  Serial.println(rssi);
+//  rssi = 0;
+//  shift = 0;
+////  delay(100);
+//
+////  Serial.println("Arduino2");
+//  Wire.requestFrom(0x91,4);
+//  while(Wire.available())
+//  {
+//    rssi += Wire.read() << shift;
+//    shift += 8;
+//  }
+////  Serial.println(rssi);
+//  rssi = 0;
+//  shift = 0;
+////  delay(100);
+//}
 
 bool get_camera_vals(char side)
 {
@@ -139,13 +156,13 @@ bool get_camera_vals(char side)
     {
       positionXR = myDFRobotIRPosition.readX(0);
       positionYR = myDFRobotIRPosition.readY(0);
-//        printResult(positionXR, 1);
+      printResult(positionXR, 1);
     }
     else
     {
       positionXL = myDFRobotIRPosition.readX(0);
       positionYL = myDFRobotIRPosition.readY(0);
-//        printResult(positionXL, 2);
+      printResult(positionXL, 2);
     }
     return true;
   }
@@ -155,17 +172,43 @@ bool get_camera_vals(char side)
 
 void perform_movement()
 {
-  if(positionXR > 300 && positionXR < 1000 && positionXL > 300 && positionXL < 1000)
+  Serial.print("YR");
+  Serial.println(positionYR);
+  Serial.print("YL");
+  Serial.println(positionYL);
+
+//  if ((positionXR <500 && positionXL > 400)){
+//    Serial.println("Forward");
+//    M.Forward(255);
+//  }
+//  else if(positionXR > 500 && positionXR != 1023)
+//  {
+//    Serial.println("Right");
+//    M.Forward_Right(255);
+//  }
+//  else if(positionXL < 400 && positionXL !=1023)
+//  {
+//    Serial.println("Left");
+//    M.Forward_Left(255);
+//  }
+//  else
+//  {
+//    M.STOP();
+//  }
+
+
+  
+  if(positionXR > 200 && positionXR < 1000 && positionXL > 200 && positionXL < 1000)
   {
-    M.Backward(255);
+    M.Forward(255);
   }
-  else if(positionXR < 300)
+  else if(positionXR < 400)
   {
-    M.Forward_Right(255);
+    M.Forward_Right(200);
   }
-  else if(positionXL < 300)
+  else if(positionXL < 400)
   {
-    M.Forward_Left(255);
+    M.Forward_Left(200);
   }
   else
   {

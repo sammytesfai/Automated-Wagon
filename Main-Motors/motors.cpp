@@ -35,8 +35,8 @@ void MOTORS::Forward(unsigned int speed)
 {
   digitalWrite(LEFT_BACKWARD_PIN, LOW);
   digitalWrite(LEFT_FORWARD_PIN, HIGH);
-  digitalWrite(RIGHT_BACKWARD_PIN, LOW);
-  digitalWrite(RIGHT_FORWARD_PIN, HIGH);
+  digitalWrite(RIGHT_BACKWARD_PIN, HIGH);
+  digitalWrite(RIGHT_FORWARD_PIN, LOW);
   
   SetLeftMotorSpeed(speed);
   SetRightMotorSpeed(speed);
@@ -46,8 +46,8 @@ void MOTORS::Backward(unsigned int speed)
 {
   digitalWrite(LEFT_BACKWARD_PIN, HIGH);
   digitalWrite(LEFT_FORWARD_PIN, LOW);
-  digitalWrite(RIGHT_BACKWARD_PIN, HIGH);
-  digitalWrite(RIGHT_FORWARD_PIN, LOW);
+  digitalWrite(RIGHT_BACKWARD_PIN, LOW);
+  digitalWrite(RIGHT_FORWARD_PIN, HIGH);
   
   SetLeftMotorSpeed(speed);
   SetRightMotorSpeed(speed);
@@ -57,8 +57,8 @@ void MOTORS::Forward_Right(unsigned int speed)
 {
   digitalWrite(LEFT_BACKWARD_PIN, LOW);
   digitalWrite(LEFT_FORWARD_PIN, HIGH);
-  digitalWrite(RIGHT_BACKWARD_PIN, HIGH);
-  digitalWrite(RIGHT_FORWARD_PIN, LOW);
+  digitalWrite(RIGHT_BACKWARD_PIN, LOW);
+  digitalWrite(RIGHT_FORWARD_PIN, HIGH);
 
   SetLeftMotorSpeed(speed);
   SetRightMotorSpeed(speed);
@@ -68,8 +68,8 @@ void MOTORS::Forward_Left(unsigned int speed)
 {
   digitalWrite(LEFT_BACKWARD_PIN, HIGH);
   digitalWrite(LEFT_FORWARD_PIN, LOW);
-  digitalWrite(RIGHT_BACKWARD_PIN, LOW);
-  digitalWrite(RIGHT_FORWARD_PIN, HIGH);
+  digitalWrite(RIGHT_BACKWARD_PIN, HIGH);
+  digitalWrite(RIGHT_FORWARD_PIN, LOW);
 
   SetLeftMotorSpeed(speed);
   SetRightMotorSpeed(speed);
@@ -79,8 +79,8 @@ void MOTORS::Backward_Right(unsigned int speed)
 {
   digitalWrite(LEFT_BACKWARD_PIN, HIGH);
   digitalWrite(LEFT_FORWARD_PIN, LOW);
-  digitalWrite(RIGHT_BACKWARD_PIN, LOW);
-  digitalWrite(RIGHT_FORWARD_PIN, HIGH);
+  digitalWrite(RIGHT_BACKWARD_PIN, HIGH);
+  digitalWrite(RIGHT_FORWARD_PIN, LOW);
 
   SetLeftMotorSpeed(speed);
   SetRightMotorSpeed(speed);
@@ -90,8 +90,8 @@ void MOTORS::Backward_Left(unsigned int speed)
 {
   digitalWrite(LEFT_BACKWARD_PIN, LOW);
   digitalWrite(LEFT_FORWARD_PIN, HIGH);
-  digitalWrite(RIGHT_BACKWARD_PIN, HIGH);
-  digitalWrite(RIGHT_FORWARD_PIN, LOW);
+  digitalWrite(RIGHT_BACKWARD_PIN, LOW);
+  digitalWrite(RIGHT_FORWARD_PIN, HIGH);
 
   SetLeftMotorSpeed(speed);
   SetRightMotorSpeed(speed);

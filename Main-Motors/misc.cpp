@@ -27,18 +27,11 @@ void set_pins(int flag)
   }
 }
 
-void printResult(int *positionX, int num)
+void printResult(int positionX, int num)
 {
-  if(num == 1) Serial.print("Camera1: ");
-  else Serial.print("Camera2: ");
-  for (int i=0; i<4; i++) 
-  {
-    Serial.print(positionX[i]);
-    Serial.print(",");
-            
-    Serial.print(positionX[i]);
-    Serial.print(";");
-  }
+  if(num == 1) Serial.print("CameraR: ");
+  else Serial.print("CameraL: ");
+  Serial.print(positionX);
   Serial.println();
 }
 
