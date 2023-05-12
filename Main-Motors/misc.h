@@ -34,9 +34,16 @@
 #define FRONTRIGHTTRIG 29
 #define FRONTRIGHTECHO 28
 
+#define FRONTTRIG 35
+#define FRONTECHO 36
+
+#define FRONT 'F'
+#define LEFT 'L'
+#define RIGHT 'R'
+
 // Values to define distane from US sensors and confidence samples
-#define CONFIDENCE_SAMPLE 5
-#define SIDE_DISTANCE 8
+#define CONFIDENCE_SAMPLE 3
+#define SIDE_DISTANCE 20
 #define FRONT_DISTANCE 30
 
 

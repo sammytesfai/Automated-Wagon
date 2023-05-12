@@ -9,10 +9,7 @@ DFRobotIRPosition myDFRobotIRPosition;
 // Store X & Y position for both cameras
 int positionXR, positionYR, positionXL, positionYL;
 
-int randomarray[] = {300, 600, 500, 900, 1023, 700, 100};
-
 int shift = 0;
-int rssi = 0;
 char front_sensor_side;
 
 void setup()
@@ -45,8 +42,32 @@ void setup()
   pinMode(FRONTRIGHTTRIG, OUTPUT);
   pinMode(FRONTRIGHTECHO, INPUT);
 
-//  echo_init();
+  pinMode(FRONTTRIG, OUTPUT);
+  pinMode(FRONTECHO, INPUT);
+
+  echo_init();
 }
+//
+//void loop()
+//{
+//  // Right Camera
+//  set_pins(0);
+//  delay(25);
+//  get_camera_vals('R');
+//
+//  // Left Camera
+//  set_pins(1);
+//  delay(25);
+//  get_camera_vals('L');
+//  
+//  Wire.requestFrom(0x9,1);
+//  while(Wire.available())
+//  {
+//    rssi= Wire.read();
+//  }
+//  Serial.println("Arduino1");
+//  Serial.println(rssi);
+//}
 
 void loop()
 {
@@ -59,35 +80,39 @@ void loop()
   set_pins(1);
   delay(25);
   get_camera_vals('L');
+  Serial.print("YR");
+  Serial.println(positionYR);
+  Serial.print("YL");
+  Serial.println(positionYL);
   
-  perform_movement();
+//  perform_movement();
   delay(1000);
 }
 
 
 //void loop()
 //{
-//  while((front_sensor_side = check_front_sensors()) != NULL)
-//  {
-//    if(front_sensor_side == 'R')
-//    {
-//      M.Forward_Left(255);
-//      delay(600);
-//      M.Forward(255);
-//      delay(1000);
-//      M.Forward_Right(255);
-//      delay(600);
-//    }
-//    else
-//    {
-//      M.Forward_Right(255);
-//      delay(600);
-//      M.Forward(255);
-//      delay(1000);
-//      M.Forward_Left(255);
-//      delay(600);
-//    }
-//  }
+////  while((front_sensor_side = check_front_sensors()) != NULL)
+////  {
+////    if(front_sensor_side == 'R')
+////    {
+////      M.Forward_Left(255);
+////      delay(600);
+////      M.Forward(255);
+////      delay(1000);
+////      M.Forward_Right(255);
+////      delay(600);
+////    }
+////    else
+////    {
+////      M.Forward_Right(255);
+////      delay(600);
+////      M.Forward(255);
+////      delay(1000);
+////      M.Forward_Left(255);
+////      delay(600);
+////    }
+////  }
 //  
 //  while(echo_confidence(LEFTTRIGGER, LEFTECHO, 'L') < SIDE_DISTANCE)
 //  {
@@ -119,31 +144,17 @@ void loop()
 //  delay(25);
 //  get_camera_vals('L');
 //
-//  perform_movement();
 //
-////  Serial.println("Arduino1");
-//  Wire.requestFrom(0x9,4);
+////  perform_movement();
+//
+//  
+//  Wire.requestFrom(0x9,1);
 //  while(Wire.available())
 //  {
-//    rssi += Wire.read() << shift;
-//    shift += 8;
+//    rssi= Wire.read();
 //  }
-////  Serial.println(rssi);
-//  rssi = 0;
-//  shift = 0;
-////  delay(100);
-//
-////  Serial.println("Arduino2");
-//  Wire.requestFrom(0x91,4);
-//  while(Wire.available())
-//  {
-//    rssi += Wire.read() << shift;
-//    shift += 8;
-//  }
-////  Serial.println(rssi);
-//  rssi = 0;
-//  shift = 0;
-////  delay(100);
+//  Serial.println("Arduino1");
+//  Serial.println(rssi);
 //}
 
 bool get_camera_vals(char side)
@@ -172,46 +183,76 @@ bool get_camera_vals(char side)
 
 void perform_movement()
 {
-  Serial.print("YR");
-  Serial.println(positionYR);
-  Serial.print("YL");
-  Serial.println(positionYL);
-
-//  if ((positionXR <500 && positionXL > 400)){
-//    Serial.println("Forward");
-//    M.Forward(255);
-//  }
-//  else if(positionXR > 500 && positionXR != 1023)
-//  {
-//    Serial.println("Right");
-//    M.Forward_Right(255);
-//  }
-//  else if(positionXL < 400 && positionXL !=1023)
-//  {
-//    Serial.println("Left");
-//    M.Forward_Left(255);
-//  }
-//  else
-//  {
-//    M.STOP();
-//  }
-
-
-  
-  if(positionXR > 200 && positionXR < 1000 && positionXL > 200 && positionXL < 1000)
+  if(positionXR == 1023 && positionXL == 1023)
   {
-    M.Forward(255);
+    lost_mode();
+    M.STOP();
+    delay(300);
   }
-  else if(positionXR < 400)
+  else if(positionXR > 700)
   {
-    M.Forward_Right(200);
+    M.Forward_Left(240);
   }
-  else if(positionXL < 400)
+  else if(positionXL == 1023)
   {
-    M.Forward_Left(200);
+    M.Forward_Right(240);
   }
   else
   {
-    M.STOP();
+    M.Forward(255);
+  }
+}
+
+void lost_mode()
+{
+  int run_time = millis();
+  int dir_time = millis();
+  M.Forward_Right(255);
+  delay(200);
+  M.Forward(255);
+  delay(300);
+  while(echo_confidence(RIGHTTRIGGER, RIGHTECHO, 'R') > 30 && echo_confidence(FRONTRIGHTTRIG,  FRONTRIGHTECHO, 'R') > 50){}
+  while(1)
+  {
+    // Right Camera
+    set_pins(0);
+    delay(25);
+    get_camera_vals('R');
+
+    // Left Camera
+    set_pins(1);
+    delay(25);
+    get_camera_vals('L');
+    
+    if(positionXL != 1023 or positionXR != 1023)
+      break;
+    else
+    { 
+      M.Forward(255);
+      delay(500);
+      if(echo_confidence(FRONTRIGHTTRIG,  FRONTRIGHTECHO, 'R') < 50)
+      {
+        M.Forward_Left(255);
+        delay(300);
+      }
+      else if(echo_confidence(RIGHTTRIGGER, RIGHTECHO, 'R') < 30)
+      {
+        M.Forward_Left(255);
+        delay(150);
+      }
+      else if(echo_confidence(RIGHTTRIGGER, RIGHTECHO, 'R') > 40)
+      {
+        if(echo_confidence(FRONTRIGHTTRIG,  FRONTRIGHTECHO, 'R') < 50)
+        {
+          M.Forward_Left(255);
+          delay(300);
+        }
+        else
+        {
+          M.Forward_Right(255);
+          delay(150);
+        }
+      }
+    }
   }
 }
