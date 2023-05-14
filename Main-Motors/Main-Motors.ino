@@ -129,6 +129,12 @@ void loop()
 //  delay(1000);
 }
 
+/*
+ * Get_Camera_Vals: Helper function to obtain Camera IR values for either the
+ * Right or Left camera. Stores these values globally.
+ * 
+ * Return: Returns the last recorded value from the cameras
+*/ 
 int get_camera_vals(char side)
 {
   myDFRobotIRPosition.requestPosition();
@@ -152,6 +158,11 @@ int get_camera_vals(char side)
   return 0;
 }
 
+/*
+ * Perform_Movement: Uses IR detector values to determine where user is
+ * and performs movements accordingly. If user can not be detected robot
+ * will go into lost mode.
+*/
 void perform_movement()
 {
   if(positionXR == 1023 && positionXL == 1023)
@@ -179,6 +190,12 @@ void perform_movement()
   }
 }
 
+/*
+ * Lost_Mode: Uses wall hugging algorithm to identify closest wall and use it as
+ * a life line to follow in the direction of where the user was last seen. Lost
+ * will continue searching for the user until they are found or until the timer
+ * expires.
+*/
 void lost_mode()
 {
   run_time = millis();
@@ -190,20 +207,14 @@ void lost_mode()
     delay(200);
     M.Forward(255);
     delay(300);
-    while(echo_confidence(RIGHTTRIGGER, RIGHTECHO, RIGHT) > 30 && echo_confidence(FRONTRIGHTTRIG,  FRONTRIGHTECHO, RIGHT) > 50 && (millis() - run_time) < WALLSEARCH){}
+    while(echo_confidence(RIGHTTRIGGER, RIGHTECHO, RIGHT) > 30 && echo_confidence(FRONTRIGHTTRIG,  FRONTRIGHTECHO, RIGHT) > 50 && (millis() - run_time) < WALLSEARCH)
+    {
+      if(check_cameras())
+        break;
+    }
     while((millis() - run_time) < RUNTIME)
     {
-      // Right Camera
-      set_pins(0);
-      delay(25);
-      get_camera_vals(RIGHT);
-  
-      // Left Camera
-      set_pins(1);
-      delay(25);
-      get_camera_vals(LEFT);
-      
-      if(positionXL != 1023 or positionXR != 1023)
+      if(check_cameras())
       {
         run_time = 0;
         break;
@@ -251,20 +262,15 @@ void lost_mode()
     delay(200);
     M.Forward(255);
     delay(300);
-    while(echo_confidence(LEFTTRIGGER, LEFTECHO, LEFT) > 30 && echo_confidence(FRONTLEFTTRIG,  FRONTLEFTECHO, LEFT) > 50 && (millis() - run_time) < WALLSEARCH){}
-    while((millis() - run_time) < RUNTIME)
+    while(echo_confidence(LEFTTRIGGER, LEFTECHO, LEFT) > 30 && echo_confidence(FRONTLEFTTRIG,  FRONTLEFTECHO, LEFT) > 50 && (millis() - run_time) < WALLSEARCH)
     {
-      // Right Camera
-      set_pins(0);
-      delay(25);
-      get_camera_vals(RIGHT);
-  
-      // Left Camera
-      set_pins(1);
-      delay(25);
-      get_camera_vals(LEFT);
-      
-      if(positionXL != 1023 or positionXR != 1023)
+      if(check_cameras())
+        break;
+    }
+    
+    while((millis() - run_time) < RUNTIME)
+    { 
+      if(check_cameras())
       {
         run_time = 0;
         break;
@@ -333,5 +339,19 @@ bool verify_lost()
   Serial.print("Bool: ");
   Serial.println((R_avg/4 == 1023) && (L_avg/4 == 1023));
   return (R_avg/4 == 1023) && (L_avg/4 == 1023);
+}
+
+bool check_cameras()
+{
+  // Right Camera
+  set_pins(0);
+  delay(25);
+  get_camera_vals(RIGHT);
   
+  // Left Camera
+  set_pins(1);
+  delay(25);
+  get_camera_vals(LEFT);
+
+  return positionXL != 1023 || positionXR != 1023;
 }
