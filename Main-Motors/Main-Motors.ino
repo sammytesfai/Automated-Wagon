@@ -7,7 +7,7 @@ MOTORS M(RIGHTPWM, LEFTPWM, RIGHTFORWARD, RIGHTBACKWARD, LEFTFORWARD, LEFTBACKWA
 DFRobotIRPosition myDFRobotIRPosition;
 
 // Store X & Y position for both cameras
-int positionXR, positionYR, positionXL, positionYL;
+int positionXR, positionXL; 
 
 int rssi = 0;
 char front_sensor_side;
@@ -129,7 +129,7 @@ void loop()
 //  delay(1000);
 }
 
-bool get_camera_vals(char side)
+int get_camera_vals(char side)
 {
   myDFRobotIRPosition.requestPosition();
   delay(25);
@@ -138,26 +138,26 @@ bool get_camera_vals(char side)
     if(side == RIGHT)
     {
       positionXR = myDFRobotIRPosition.readX(0);
-      positionYR = myDFRobotIRPosition.readY(0);
       printResult(positionXR, 1);
+      return positionXR;
     }
     else
     {
       positionXL = myDFRobotIRPosition.readX(0);
-      positionYL = myDFRobotIRPosition.readY(0);
       printResult(positionXL, 2);
+      return positionXL;
     }
-    return true;
   }
   Serial.println("Device not available!");
-  return false;
+  return 0;
 }
 
 void perform_movement()
 {
   if(positionXR == 1023 && positionXL == 1023)
   {
-    lost_mode();
+    if(verify_lost())
+      lost_mode();
     M.STOP();
     delay(300);
     if(run_time != 0 && (millis() - run_time) > 15000)
@@ -306,4 +306,32 @@ void lost_mode()
       }
     }
   }
+}
+
+/*
+ * Verify_Lost: Takes another 4 samples of the IR detector to verify whether
+ * or not the user is truly lost
+ * 
+ * Returns: Bool, true if the user is lost false otherwise.
+*/
+bool verify_lost()
+{
+  int R_avg = 0, L_avg =0;
+  for(int i = 0; i < 4; i++)
+  {
+    // Right Camera
+    set_pins(0);
+    delay(25);
+    R_avg += get_camera_vals(RIGHT);
+
+    // Left Camera
+    set_pins(1);
+    delay(25);
+    L_avg += get_camera_vals(LEFT);
+  }
+
+  Serial.print("Bool: ");
+  Serial.println((R_avg/4 == 1023) && (L_avg/4 == 1023));
+  return (R_avg/4 == 1023) && (L_avg/4 == 1023);
+  
 }

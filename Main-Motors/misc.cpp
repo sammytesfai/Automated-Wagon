@@ -91,7 +91,6 @@ int echo_confidence(int trig, int echo, char side)
   }
 
   check_US(trig, echo, side);
-  Serial.println(echo_avg(trig, side));
   return echo_avg(trig, side);
 }
 
