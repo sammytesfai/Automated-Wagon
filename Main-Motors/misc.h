@@ -46,6 +46,9 @@
 #define SIDE_DISTANCE 20
 #define FRONT_DISTANCE 30
 
+#define RUNTIME 30000
+#define WALLSEARCH 10000
+
 
 void set_pins(int flag);
 void printResult(int positionX, int num);

@@ -9,8 +9,9 @@ DFRobotIRPosition myDFRobotIRPosition;
 // Store X & Y position for both cameras
 int positionXR, positionYR, positionXL, positionYL;
 
-int shift = 0;
+int rssi = 0;
 char front_sensor_side;
+int run_time = 0;
 
 void setup()
 {
@@ -47,6 +48,16 @@ void setup()
 
   echo_init();
 }
+
+//void loop()
+//{
+//  Serial.print("Right: ");
+//  Serial.println(echo_confidence(FRONTRIGHTTRIG, FRONTRIGHTECHO, RIGHT));
+//  Serial.print("Left: ");
+//  Serial.println(echo_confidence(FRONTLEFTTRIG, FRONTLEFTECHO, LEFT));
+//  delay(1000);
+//}
+
 //
 //void loop()
 //{
@@ -71,91 +82,52 @@ void setup()
 
 void loop()
 {
+  while(echo_confidence(LEFTTRIGGER, LEFTECHO, LEFT) < SIDE_DISTANCE)
+  {
+    M.Forward_Right(255);
+    Serial.println("RIGHT");
+    delay(150);
+    M.Forward(255);
+    Serial.println("Forward");
+    delay(150);
+  }
+
+  while(echo_confidence(RIGHTTRIGGER, RIGHTECHO, RIGHT) < SIDE_DISTANCE)
+  {
+    M.Forward_Left(255);
+    Serial.println("LEFT");
+    delay(150);
+    M.Forward(255);
+    Serial.println("Forward");
+    delay(150);
+  }
+
+  while(echo_confidence(FRONTTRIG, FRONTECHO, FRONT) < 30)
+  {
+    M.Backward(255);
+  }
+  
   // Right Camera
   set_pins(0);
   delay(25);
-  get_camera_vals('R');
+  get_camera_vals(RIGHT);
 
   // Left Camera
   set_pins(1);
   delay(25);
-  get_camera_vals('L');
-  Serial.print("YR");
-  Serial.println(positionYR);
-  Serial.print("YL");
-  Serial.println(positionYL);
+  get_camera_vals(LEFT);
   
-//  perform_movement();
-  delay(1000);
+  perform_movement();
+
+  Wire.requestFrom(0x9,1);
+  while(Wire.available())
+  {
+    rssi= Wire.read();
+  }
+  Serial.println("Arduino1");
+  Serial.println(rssi);
+//  delay(1000);
 }
-
-
-//void loop()
-//{
-////  while((front_sensor_side = check_front_sensors()) != NULL)
-////  {
-////    if(front_sensor_side == 'R')
-////    {
-////      M.Forward_Left(255);
-////      delay(600);
-////      M.Forward(255);
-////      delay(1000);
-////      M.Forward_Right(255);
-////      delay(600);
-////    }
-////    else
-////    {
-////      M.Forward_Right(255);
-////      delay(600);
-////      M.Forward(255);
-////      delay(1000);
-////      M.Forward_Left(255);
-////      delay(600);
-////    }
-////  }
-//  
-//  while(echo_confidence(LEFTTRIGGER, LEFTECHO, 'L') < SIDE_DISTANCE)
-//  {
-//    M.Forward_Right(255);
-//    Serial.println("RIGHT");
-//    delay(150);
-//    M.Forward(255);
-//    Serial.println("Forward");
-//    delay(150);
-//  }
-//
-//  while(echo_confidence(RIGHTTRIGGER, RIGHTECHO, 'R') < SIDE_DISTANCE)
-//  {
-//    M.Forward_Left(255);
-//    Serial.println("LEFT");
-//    delay(150);
-//    M.Forward(255);
-//    Serial.println("Forward");
-//    delay(150);
-//  }
-//
-//  // Right Camera
-//  set_pins(0);
-//  delay(25);
-//  get_camera_vals('R');
-//
-//  // Left Camera
-//  set_pins(1);
-//  delay(25);
-//  get_camera_vals('L');
-//
-//
-////  perform_movement();
-//
-//  
-//  Wire.requestFrom(0x9,1);
-//  while(Wire.available())
-//  {
-//    rssi= Wire.read();
-//  }
-//  Serial.println("Arduino1");
-//  Serial.println(rssi);
-//}
 
 bool get_camera_vals(char side)
 {
@@ -163,7 +135,7 @@ bool get_camera_vals(char side)
   delay(25);
   if (myDFRobotIRPosition.available())
   {
-    if(side == 'R')
+    if(side == RIGHT)
     {
       positionXR = myDFRobotIRPosition.readX(0);
       positionYR = myDFRobotIRPosition.readY(0);
@@ -188,6 +160,10 @@ void perform_movement()
     lost_mode();
     M.STOP();
     delay(300);
+    if(run_time != 0 && (millis() - run_time) > 15000)
+    {
+      while(1){}
+    }
   }
   else if(positionXR > 700)
   {
@@ -205,52 +181,127 @@ void perform_movement()
 
 void lost_mode()
 {
-  int run_time = millis();
-  int dir_time = millis();
-  M.Forward_Right(255);
+  run_time = millis();
+  M.STOP();
   delay(200);
-  M.Forward(255);
-  delay(300);
-  while(echo_confidence(RIGHTTRIGGER, RIGHTECHO, 'R') > 30 && echo_confidence(FRONTRIGHTTRIG,  FRONTRIGHTECHO, 'R') > 50){}
-  while(1)
+  if(echo_confidence(FRONTRIGHTTRIG, FRONTRIGHTECHO, RIGHT) < echo_confidence(FRONTLEFTTRIG, FRONTLEFTECHO, LEFT))
   {
-    // Right Camera
-    set_pins(0);
-    delay(25);
-    get_camera_vals('R');
-
-    // Left Camera
-    set_pins(1);
-    delay(25);
-    get_camera_vals('L');
-    
-    if(positionXL != 1023 or positionXR != 1023)
-      break;
-    else
-    { 
-      M.Forward(255);
-      delay(500);
-      if(echo_confidence(FRONTRIGHTTRIG,  FRONTRIGHTECHO, 'R') < 50)
+    M.Forward_Right(255);
+    delay(200);
+    M.Forward(255);
+    delay(300);
+    while(echo_confidence(RIGHTTRIGGER, RIGHTECHO, RIGHT) > 30 && echo_confidence(FRONTRIGHTTRIG,  FRONTRIGHTECHO, RIGHT) > 50 && (millis() - run_time) < WALLSEARCH){}
+    while((millis() - run_time) < RUNTIME)
+    {
+      // Right Camera
+      set_pins(0);
+      delay(25);
+      get_camera_vals(RIGHT);
+  
+      // Left Camera
+      set_pins(1);
+      delay(25);
+      get_camera_vals(LEFT);
+      
+      if(positionXL != 1023 or positionXR != 1023)
       {
-        M.Forward_Left(255);
-        delay(300);
+        run_time = 0;
+        break;
       }
-      else if(echo_confidence(RIGHTTRIGGER, RIGHTECHO, 'R') < 30)
-      {
-        M.Forward_Left(255);
-        delay(150);
-      }
-      else if(echo_confidence(RIGHTTRIGGER, RIGHTECHO, 'R') > 40)
-      {
-        if(echo_confidence(FRONTRIGHTTRIG,  FRONTRIGHTECHO, 'R') < 50)
+      else
+      { 
+        M.Forward(255);
+        delay(500);
+        if(echo_confidence(FRONTTRIG, FRONTECHO, FRONT) < 70)
+        {
+          M.Backward(255);
+          delay(500);
+          M.Forward_Left(255);
+          delay(500);
+        }
+        else if(echo_confidence(FRONTRIGHTTRIG,  FRONTRIGHTECHO, RIGHT) < 50)
         {
           M.Forward_Left(255);
           delay(300);
         }
-        else
+        else if(echo_confidence(RIGHTTRIGGER, RIGHTECHO, RIGHT) < 30)
+        {
+          M.Forward_Left(255);
+          delay(150);
+        }
+        else if(echo_confidence(RIGHTTRIGGER, RIGHTECHO, RIGHT) > 40)
+        {
+          if(echo_confidence(FRONTRIGHTTRIG,  FRONTRIGHTECHO, RIGHT) < 50)
+          {
+            M.Forward_Left(255);
+            delay(300);
+          }
+          else
+          {
+            M.Forward_Right(255);
+            delay(150);
+          }
+        }
+      }
+    }
+  }
+  else
+  {
+    M.Forward_Left(255);
+    delay(200);
+    M.Forward(255);
+    delay(300);
+    while(echo_confidence(LEFTTRIGGER, LEFTECHO, LEFT) > 30 && echo_confidence(FRONTLEFTTRIG,  FRONTLEFTECHO, LEFT) > 50 && (millis() - run_time) < WALLSEARCH){}
+    while((millis() - run_time) < RUNTIME)
+    {
+      // Right Camera
+      set_pins(0);
+      delay(25);
+      get_camera_vals(RIGHT);
+  
+      // Left Camera
+      set_pins(1);
+      delay(25);
+      get_camera_vals(LEFT);
+      
+      if(positionXL != 1023 or positionXR != 1023)
+      {
+        run_time = 0;
+        break;
+      }
+      else
+      { 
+        M.Forward(255);
+        delay(500);
+        if(echo_confidence(FRONTTRIG, FRONTECHO, FRONT) < 70)
+        {
+          M.Backward(255);
+          delay(500);
+          M.Forward_Right(255);
+          delay(500);
+        }
+        else if(echo_confidence(FRONTLEFTTRIG,  FRONTLEFTECHO, LEFT) < 50)
+        {
+          M.Forward_Right(255);
+          delay(300);
+        }
+        else if(echo_confidence(LEFTTRIGGER, LEFTECHO, LEFT) < 30)
         {
           M.Forward_Right(255);
           delay(150);
+        }
+        else if(echo_confidence(LEFTTRIGGER, LEFTECHO, LEFT) > 40)
+        {
+          if(echo_confidence(FRONTLEFTTRIG,  FRONTLEFTECHO, RIGHT) < 50)
+          {
+            M.Forward_Right(255);
+            delay(300);
+          }
+          else
+          {
+            M.Forward_Left(255);
+            delay(150);
+          }
         }
       }
     }
