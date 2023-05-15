@@ -37,6 +37,7 @@
 #define FRONTTRIG 35
 #define FRONTECHO 36
 
+// Macro values to depict side of US sensor
 #define FRONT 'F'
 #define LEFT 'L'
 #define RIGHT 'R'
@@ -46,8 +47,16 @@
 #define SIDE_DISTANCE 20
 #define FRONT_DISTANCE 30
 
+// Time thresholds of Lost Mode
 #define RUNTIME 30000
 #define WALLSEARCH 10000
+
+// States of state machine
+#define SEARCH 0
+#define TURKEY 1
+#define LOST 2
+#define OUT_OF_RANGE 3
+#define SOS 4
 
 
 void set_pins(int flag);
@@ -56,5 +65,4 @@ int check_US(int trig, int echo, char side);
 int echo_confidence(int trig, int echo, char side);
 int echo_avg(int trig, char side);
 void echo_init();
-char check_front_sensors();
 #endif

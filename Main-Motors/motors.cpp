@@ -1,6 +1,10 @@
 #include <Arduino.h>
 #include "motors.h"
 
+/*
+ * MOTORS Constructor: Initializes all pins for motors and sets encoder values to ensure they
+ * dont run on startup
+*/
 MOTORS::MOTORS(unsigned int PWM_Right, unsigned int PWM_Left, unsigned int Right_F, unsigned int Right_B, unsigned int Left_F, unsigned int Left_B): Right(PWM_Right), Left(PWM_Left)
 {
   RIGHT_FORWARD_PIN = Right_F;
@@ -19,18 +23,27 @@ MOTORS::MOTORS(unsigned int PWM_Right, unsigned int PWM_Left, unsigned int Right
   SetRightMotorSpeed(0);
 }
 
+/*
+ * SetLeftMotorSpeed: Set speed for the Left Motors PWM
+*/
 void MOTORS::SetLeftMotorSpeed(unsigned int speed)
 {
   if(speed == Left.PWM_GetDutyCycle()) return;
   Left.PWM_SetDutyCycle(speed);
 }
 
+/*
+ * SetRightMotorSpeed: Set speed for the Right Motors PWM
+*/
 void MOTORS::SetRightMotorSpeed(unsigned int speed)
 {
   if(speed == Right.PWM_GetDutyCycle()) return;
   Right.PWM_SetDutyCycle(speed);
 }
 
+/*
+ * Forward: Has robot move forward at a specified speed
+*/
 void MOTORS::Forward(unsigned int speed)
 {
   digitalWrite(LEFT_BACKWARD_PIN, LOW);
@@ -42,6 +55,9 @@ void MOTORS::Forward(unsigned int speed)
   SetRightMotorSpeed(speed);
 }
 
+/*
+ * Backward: Has robot move backward at a specified speed
+*/
 void MOTORS::Backward(unsigned int speed)
 {
   digitalWrite(LEFT_BACKWARD_PIN, HIGH);
@@ -53,6 +69,9 @@ void MOTORS::Backward(unsigned int speed)
   SetRightMotorSpeed(speed);
 }
 
+/*
+ * Forward_Right: Has robot perform a tank right turn at a specified speed
+*/
 void MOTORS::Forward_Right(unsigned int speed)
 {
   digitalWrite(LEFT_BACKWARD_PIN, LOW);
@@ -64,6 +83,9 @@ void MOTORS::Forward_Right(unsigned int speed)
   SetRightMotorSpeed(speed);
 }
 
+/*
+ * Forward_Left: Has robot perform a tank left turn at a specified speed
+*/
 void MOTORS::Forward_Left(unsigned int speed)
 {
   digitalWrite(LEFT_BACKWARD_PIN, HIGH);
@@ -75,6 +97,9 @@ void MOTORS::Forward_Left(unsigned int speed)
   SetRightMotorSpeed(speed);
 }
 
+/*
+ * Backward_Right: Has robot perform a tank right turn at a specified speed in the reverse direction.
+*/
 void MOTORS::Backward_Right(unsigned int speed)
 {
   digitalWrite(LEFT_BACKWARD_PIN, HIGH);
@@ -86,6 +111,9 @@ void MOTORS::Backward_Right(unsigned int speed)
   SetRightMotorSpeed(speed);
 }
 
+/*
+ * Backward_Left: Has robot perform a tank left turn at a specified speed in the reverse direction.
+*/
 void MOTORS::Backward_Left(unsigned int speed)
 {
   digitalWrite(LEFT_BACKWARD_PIN, LOW);
@@ -97,6 +125,9 @@ void MOTORS::Backward_Left(unsigned int speed)
   SetRightMotorSpeed(speed);
 }
 
+/*
+ * STOP: Stops the robots movement.
+*/
 void MOTORS::STOP()
 {
   digitalWrite(LEFT_BACKWARD_PIN, LOW);

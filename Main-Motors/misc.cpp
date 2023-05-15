@@ -9,7 +9,11 @@ static int front_left_echo [CONFIDENCE_SAMPLE];
 static int front_right_echo [CONFIDENCE_SAMPLE];
 static int front_echo [CONFIDENCE_SAMPLE];
 
-// Selector Functions for Cameras
+/* 
+ *  SET_PINS: set select pins for MUX to access either 
+ *  Left or Right camera. 0 for Right camera, 1 for Left
+ *  camera
+*/
 void set_pins(int flag)
 {
   if(flag)
@@ -28,6 +32,10 @@ void set_pins(int flag)
   }
 }
 
+/*
+ * PrintResult: Printing function to print out detected 
+ * IR emitter values within each cameras axis.
+*/
 void printResult(int positionX, int num)
 {
   if(num == 1) Serial.print("CameraR: ");
@@ -36,7 +44,10 @@ void printResult(int positionX, int num)
   Serial.println();
 }
 
-// Get new US value from sensor
+/*
+ * Check_US: obtains new US value for the specified sensor.
+ * Stores it in global array.
+*/
 int check_US(int trig, int echo, char side)
 {
   digitalWrite(trig, LOW);
@@ -67,7 +78,12 @@ int check_US(int trig, int echo, char side)
   return distance;
 }
 
-// Retain state of previous US values and returnn avg
+/*
+ * Echo_Confidence: Takes averages of past and most current
+ * US value to ensure there isnt too much fluxuation.
+ * 
+ * Returns: Returns avgerage of a specific US sensor
+*/
 int echo_confidence(int trig, int echo, char side)
 {
   for(int i = 1; i < CONFIDENCE_SAMPLE; i++)
@@ -94,7 +110,11 @@ int echo_confidence(int trig, int echo, char side)
   return echo_avg(trig, side);
 }
 
-// Calcualtes avg of a specific US sensor
+/*
+ * Echo_Avg: Takes the average of a US sensors data.
+ * 
+ * Return: Average of US values stored globally.
+*/
 int echo_avg(int trig, char side)
 {
   int total = 0;
@@ -117,7 +137,11 @@ int echo_avg(int trig, char side)
   return total/CONFIDENCE_SAMPLE;
 }
 
-// Get intial sample of robots surroundings
+/*
+ * Echo_Init: Initializes all US sensors on robot to ensure
+ * when robot is intially booted up averages produce most
+ * accurate values.
+*/
 void echo_init()
 {
   echo_confidence(LEFTTRIGGER, LEFTECHO, LEFT);
@@ -143,19 +167,3 @@ void echo_init()
   echo_confidence(FRONTLEFTTRIG, FRONTLEFTECHO, LEFT);
   echo_confidence(FRONTRIGHTTRIG, FRONTRIGHTECHO, RIGHT);
 }
-
-// Checks to see if object is detected in front of Robot
-char check_front_sensors()
-{
-  if(echo_confidence(FRONTTRIG, FRONTECHO, FRONT) < FRONT_DISTANCE)
-    return FRONT;
-  if(echo_confidence(FRONTLEFTTRIG, FRONTLEFTECHO, LEFT) < FRONT_DISTANCE)
-    return LEFT;
-  if(echo_confidence(FRONTRIGHTTRIG, FRONTRIGHTECHO, RIGHT) < FRONT_DISTANCE)
-    return RIGHT;
-  return NULL;
-}
-
-
-
-

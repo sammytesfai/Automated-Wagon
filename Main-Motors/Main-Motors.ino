@@ -7,11 +7,10 @@ MOTORS M(RIGHTPWM, LEFTPWM, RIGHTFORWARD, RIGHTBACKWARD, LEFTFORWARD, LEFTBACKWA
 DFRobotIRPosition myDFRobotIRPosition;
 
 // Store X & Y position for both cameras
-int positionXR, positionXL; 
-
+int positionXR, positionXL;
 int rssi = 0;
-char front_sensor_side;
 int run_time = 0;
+int state = 0;
 
 void setup()
 {
@@ -42,91 +41,120 @@ void setup()
   pinMode(FRONTLEFTECHO, INPUT);
   pinMode(FRONTRIGHTTRIG, OUTPUT);
   pinMode(FRONTRIGHTECHO, INPUT);
-
   pinMode(FRONTTRIG, OUTPUT);
   pinMode(FRONTECHO, INPUT);
 
   echo_init();
+  run_time = millis();
 }
-
-//void loop()
-//{
-//  Serial.print("Right: ");
-//  Serial.println(echo_confidence(FRONTRIGHTTRIG, FRONTRIGHTECHO, RIGHT));
-//  Serial.print("Left: ");
-//  Serial.println(echo_confidence(FRONTLEFTTRIG, FRONTLEFTECHO, LEFT));
-//  delay(1000);
-//}
-
-//
-//void loop()
-//{
-//  // Right Camera
-//  set_pins(0);
-//  delay(25);
-//  get_camera_vals('R');
-//
-//  // Left Camera
-//  set_pins(1);
-//  delay(25);
-//  get_camera_vals('L');
-//  
-//  Wire.requestFrom(0x9,1);
-//  while(Wire.available())
-//  {
-//    rssi= Wire.read();
-//  }
-//  Serial.println("Arduino1");
-//  Serial.println(rssi);
-//}
 
 void loop()
 {
-  while(echo_confidence(LEFTTRIGGER, LEFTECHO, LEFT) < SIDE_DISTANCE)
+  Serial.print("STATE: ");
+  Serial.println(state);
+  switch(state)
   {
-    M.Forward_Right(255);
-    Serial.println("RIGHT");
-    delay(150);
-    M.Forward(255);
-    Serial.println("Forward");
-    delay(150);
-  }
+    case SEARCH:
+      // Transition to SOS state if can not detect within timer
+      // If can detect user transition to TURKEY state
+      if(!check_cameras())
+      {
+        if((millis() - run_time) > 15000)
+        {
+          M.STOP();
+          state = SOS;
+        }
+        else
+          M.Forward_Right(250);
+      }
+      else
+        state = TURKEY;
+      break;
+    case TURKEY:
+      // Avoid objects on left side of robot
+      while(echo_confidence(LEFTTRIGGER, LEFTECHO, LEFT) < SIDE_DISTANCE)
+      {
+        M.Forward_Right(255);
+        Serial.println("RIGHT");
+        delay(150);
+        M.Forward(255);
+        Serial.println("Forward");
+        delay(150);
+      }
+    
+      // Avoid objects on right side of robot
+      while(echo_confidence(RIGHTTRIGGER, RIGHTECHO, RIGHT) < SIDE_DISTANCE)
+      {
+        M.Forward_Left(255);
+        Serial.println("LEFT");
+        delay(150);
+        M.Forward(255);
+        Serial.println("Forward");
+        delay(150);
+      }
+    
+      // Backup until object in front of robot is far enough away
+      while(echo_confidence(FRONTTRIG, FRONTECHO, FRONT) < 30)
+      {
+        M.Backward(255);
+      }
 
-  while(echo_confidence(RIGHTTRIGGER, RIGHTECHO, RIGHT) < SIDE_DISTANCE)
-  {
-    M.Forward_Left(255);
-    Serial.println("LEFT");
-    delay(150);
-    M.Forward(255);
-    Serial.println("Forward");
-    delay(150);
-  }
+      // Obtain RSSI value from arduino 33 ble and use it to determine distance from user
+      Wire.requestFrom(0x9,1);
+      while(Wire.available())
+      {
+        rssi= Wire.read();
+      }
+    
+      // Obtain camera detector values and perform movement based on provided input
+      set_pins(0);
+      delay(25);
+      get_camera_vals(RIGHT);
+    
+      set_pins(1);
+      delay(25);
+      get_camera_vals(LEFT);
+      
+      perform_movement();
 
-  while(echo_confidence(FRONTTRIG, FRONTECHO, FRONT) < 30)
-  {
-    M.Backward(255);
-  }
-  
-  // Right Camera
-  set_pins(0);
-  delay(25);
-  get_camera_vals(RIGHT);
+      // Transition to OUT_OF_RANGE state if too far from user
+      if(state == TURKEY && rssi ==1)
+        state = OUT_OF_RANGE;
+      break;
+    case LOST:
+      lost_mode();
+      M.STOP();
+      delay(300);
 
-  // Left Camera
-  set_pins(1);
-  delay(25);
-  get_camera_vals(LEFT);
-  
-  perform_movement();
+      // Transition to SEARCH state if timer runs out
+      if(run_time != 0 && (millis() - run_time) > 15000)
+      {
+        run_time = millis();
+        state = SEARCH;
+      }
+      break;
+    case OUT_OF_RANGE:
+      M.Forward(255);
+      // Obtain RSSI value from arduino 33 ble and use it to determine distance from user
+      Wire.requestFrom(0x9,1);
+      while(Wire.available())
+      {
+        rssi= Wire.read();
+      }
 
-  Wire.requestFrom(0x9,1);
-  while(Wire.available())
-  {
-    rssi= Wire.read();
+      // Transition to TURKEY state if within range and detect emitter
+      // If can not detect emitter transition to LOST state
+      if(rssi == 0 && check_cameras())
+        state = TURKEY;
+      else if(!check_cameras())
+        state = LOST;
+    case SOS:
+      // Inifinite Loop needs to be rebooted to operate
+      while(1){}
+      break;
+    default:
+      break;
   }
-  Serial.println("Arduino1");
-  Serial.println(rssi);
-//  delay(1000);
 }
 
 /*
@@ -168,13 +196,7 @@ void perform_movement()
   if(positionXR == 1023 && positionXL == 1023)
   {
     if(verify_lost())
-      lost_mode();
-    M.STOP();
-    delay(300);
-    if(run_time != 0 && (millis() - run_time) > 15000)
-    {
-      while(1){}
-    }
+      state = LOST;
   }
   else if(positionXR > 700)
   {
@@ -210,13 +232,17 @@ void lost_mode()
     while(echo_confidence(RIGHTTRIGGER, RIGHTECHO, RIGHT) > 30 && echo_confidence(FRONTRIGHTTRIG,  FRONTRIGHTECHO, RIGHT) > 50 && (millis() - run_time) < WALLSEARCH)
     {
       if(check_cameras())
+      {
+        state = TURKEY;
         break;
+      }
     }
     while((millis() - run_time) < RUNTIME)
     {
       if(check_cameras())
       {
         run_time = 0;
+        state = TURKEY;
         break;
       }
       else
@@ -265,7 +291,10 @@ void lost_mode()
     while(echo_confidence(LEFTTRIGGER, LEFTECHO, LEFT) > 30 && echo_confidence(FRONTLEFTTRIG,  FRONTLEFTECHO, LEFT) > 50 && (millis() - run_time) < WALLSEARCH)
     {
       if(check_cameras())
+      {
+        state = TURKEY;
         break;
+      }
     }
     
     while((millis() - run_time) < RUNTIME)
@@ -273,6 +302,7 @@ void lost_mode()
       if(check_cameras())
       {
         run_time = 0;
+        state = TURKEY;
         break;
       }
       else
@@ -341,6 +371,12 @@ bool verify_lost()
   return (R_avg/4 == 1023) && (L_avg/4 == 1023);
 }
 
+/*
+ * Check_Cameras: Helper function to check if cameras can detect a
+ * users IR emitter
+ * 
+ * Returns: True if it can be detected, otherwise false
+*/
 bool check_cameras()
 {
   // Right Camera
