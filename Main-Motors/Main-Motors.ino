@@ -8,9 +8,10 @@ DFRobotIRPosition myDFRobotIRPosition;
 
 // Store X & Y position for both cameras
 int positionXR, positionXL;
-int rssi = 0;
+int rssi = 9999;
 int run_time = 0;
 int state = 0;
+bool conn = false;
 
 void setup()
 {
@@ -45,7 +46,6 @@ void setup()
   pinMode(FRONTECHO, INPUT);
 
   echo_init();
-  run_time = millis();
 }
 
 void loop()
@@ -54,6 +54,24 @@ void loop()
   Serial.println(state);
   switch(state)
   {
+    case INIT:
+      while(1)
+      {
+        Wire.requestFrom(0x9,1);
+        while(Wire.available())
+        {
+          rssi = Wire.read();
+          if(rssi != 200)
+            conn = true;
+        }
+    
+        Serial.println(rssi);
+        if(conn)
+          break;
+      }
+      state = SEARCH;
+      run_time = millis();
+      break;
     case SEARCH:
       // Transition to SOS state if can not detect within timer
       // If can detect user transition to TURKEY state
@@ -75,10 +93,8 @@ void loop()
       while(echo_confidence(LEFTTRIGGER, LEFTECHO, LEFT) < SIDE_DISTANCE)
       {
         M.Forward_Right(255);
-        Serial.println("RIGHT");
         delay(150);
         M.Forward(255);
-        Serial.println("Forward");
         delay(150);
       }
     
@@ -86,10 +102,8 @@ void loop()
       while(echo_confidence(RIGHTTRIGGER, RIGHTECHO, RIGHT) < SIDE_DISTANCE)
       {
         M.Forward_Left(255);
-        Serial.println("LEFT");
         delay(150);
         M.Forward(255);
-        Serial.println("Forward");
         delay(150);
       }
     
@@ -105,6 +119,7 @@ void loop()
       {
         rssi= Wire.read();
       }
+      Serial.println(rssi);
     
       // Obtain camera detector values and perform movement based on provided input
       set_pins(0);
@@ -239,13 +254,13 @@ void lost_mode()
     }
     while((millis() - run_time) < RUNTIME)
     {
-      if(check_cameras())
+      if(check_cameras()) // If found change state and exit loop
       {
         run_time = 0;
         state = TURKEY;
         break;
       }
-      else
+      else // Wall hugging
       { 
         M.Forward(255);
         delay(500);
@@ -279,6 +294,15 @@ void lost_mode()
             delay(150);
           }
         }
+
+        // If front is stuck then back up and adjust
+        if(echo_confidence(FRONTRIGHTTRIG,  FRONTRIGHTECHO, RIGHT) < 10)
+        {
+          M.Backward(255);
+          delay(500);
+          M.Forward_Left(255);
+          delay(500);
+        }
       }
     }
   }
@@ -290,7 +314,7 @@ void lost_mode()
     delay(300);
     while(echo_confidence(LEFTTRIGGER, LEFTECHO, LEFT) > 30 && echo_confidence(FRONTLEFTTRIG,  FRONTLEFTECHO, LEFT) > 50 && (millis() - run_time) < WALLSEARCH)
     {
-      if(check_cameras())
+      if(check_cameras()) // If User found change state and exit loop
       {
         state = TURKEY;
         break;
@@ -299,7 +323,7 @@ void lost_mode()
     
     while((millis() - run_time) < RUNTIME)
     { 
-      if(check_cameras())
+      if(check_cameras()) // If User found change state and exit loop
       {
         run_time = 0;
         state = TURKEY;
@@ -339,6 +363,15 @@ void lost_mode()
             delay(150);
           }
         }
+
+        // If front is stuck then back up and adjust
+        if(echo_confidence(FRONTLEFTTRIG,  FRONTLEFTECHO, LEFT) < 10)
+        {
+          M.Backward(255);
+          delay(500);
+          M.Forward_Right(255);
+          delay(500);
+        }
       }
     }
   }
@@ -365,9 +398,6 @@ bool verify_lost()
     delay(25);
     L_avg += get_camera_vals(LEFT);
   }
-
-  Serial.print("Bool: ");
-  Serial.println((R_avg/4 == 1023) && (L_avg/4 == 1023));
   return (R_avg/4 == 1023) && (L_avg/4 == 1023);
 }
 

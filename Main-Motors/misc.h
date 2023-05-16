@@ -52,11 +52,12 @@
 #define WALLSEARCH 10000
 
 // States of state machine
-#define SEARCH 0
-#define TURKEY 1
-#define LOST 2
-#define OUT_OF_RANGE 3
-#define SOS 4
+#define INIT 0
+#define SEARCH 1
+#define TURKEY 2
+#define LOST 3
+#define OUT_OF_RANGE 4
+#define SOS 5
 
 
 void set_pins(int flag);
