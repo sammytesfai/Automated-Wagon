@@ -46,6 +46,7 @@ void setup()
   pinMode(FRONTECHO, INPUT);
 
   echo_init();
+  delay(2000);
 }
 
 void loop()
@@ -161,11 +162,18 @@ void loop()
       // If can not detect emitter transition to LOST state
       if(rssi == 0 && check_cameras())
         state = TURKEY;
+      else if(!check_cameras() && rssi == 1)
+        state = SOS;
       else if(!check_cameras())
         state = LOST;
     case SOS:
       // Inifinite Loop needs to be rebooted to operate
-      while(1){}
+      while(1)
+      {
+        Wire.beginTransmission(0x9);
+        Wire.write(1);
+        Wire.endTransmission();
+      }
       break;
     default:
       break;

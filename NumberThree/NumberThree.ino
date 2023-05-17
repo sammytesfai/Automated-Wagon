@@ -7,6 +7,8 @@
 volatile int rssi1 = 0;
 volatile int rssi2 = 0;
 volatile int distance = 0;
+volatile int output = 0;
+
 int kalmanFilter(int measurement)
 {
   const int measurementNoise = 1;
@@ -34,15 +36,28 @@ int kalmanFilter(int measurement)
 static const char* greeting = "Hello World!";
 BLEService greetingService("9A48ECBA-2E92-082F-C079-9E75AAE428B1");  
 
-BLEStringCharacteristic greetingCharacteristic("2A56",  // standard 16-bit characteristic UUID
-    BLERead | BLENotify, 13); 
+BLEStringCharacteristic greetingCharacteristic("2A56", BLERead | BLENotify, 13); 
 BLEStringCharacteristic stringCharacteristic( BLE_UUID_STRING, BLERead | BLENotify,200 );
+bool conn = false;
+void receiveOne() 
+{
+  //Serial.println(output);
+  if(conn)
+    Wire.write(output);
+  else
+  {
+    Wire.write(200);
+  }
+}
 
-void receiveOne() {
-  Wire.write(distance);
-  Serial.print("DISTANCE: "); 
-  Serial.print(distance); 
-  Serial.print("\r\n");
+bool SOS = false;
+void receiveEvent(int bytes)
+{
+  while(Wire.available() > bytes)
+  {
+    SOS = Wire.read();
+  }
+  stringCharacteristic.writeValue("SOS");
 }
 
 // Defining the pins used for input and output 
@@ -52,65 +67,104 @@ void setup(void)
   Serial.begin(9600); 
   Wire.begin(0x9);
   Wire.onRequest(receiveOne); 
+  Wire.onReceive(receiveEvent);
   
   // Set up the BLE module and advertise the greeting service. 
   if (!BLE.begin()) { 
    Serial.println("starting BLE failed!");
    while(1);
   }
-  BLE.setLocalName("Nano33BLENumberThree");  
+  BLE.setLocalName("Nano33");
+  BLE.setDeviceName("Nano33");  
   BLE.setAdvertisedService(greetingService); 
-  greetingService.addCharacteristic(greetingCharacteristic); 
-  greetingService.addCharacteristic(stringCharacteristic);
+  greetingService.addCharacteristic(greetingCharacteristic);
+  greetingService.addCharacteristic(stringCharacteristic); 
   BLE.addService(greetingService); 
-  greetingCharacteristic.setValue(greeting); 
+  stringCharacteristic.writeValue("Running"); 
 
   BLE.advertise();  // Start advertising
-  Serial.print("Peripheral device MAC: ");
-  Serial.println(BLE.address());
-  Serial.println("Waiting for connections...");
 }
+
+volatile int grab(int a[]){
+  int count = 0;
+  //Serial.print("(");
+  for (int i = 0; i < 10; i++) {
+    //Serial.print(" ");
+    //Serial.print(a[i]);
+    //Serial.print(",");
+    if(a[i] == true){
+      count = count + 1;
+    } 
+  }
+//  Serial.print(")");
+  
+  if(count>=9){
+    output = true;
+//    Serial.print(" OUT");
+  } else {
+    output = false;
+//    Serial.print(" IN");
+  }
+  
+  //Serial.print("\r\n");
+  return output;
+}
+
 
 void loop(void)
 {
+  int filtered_rssi;
+  int raw_rssi;
+  //int txpower = -59;
+  //int n = 3;
+  int thresh = -70;
+  bool B;
+  int arr[10] = {};
   
   BLEDevice central = BLE.central();  
 
   if (central) {
     Serial.print("Connected to central MAC: ");
+    conn = true;
     Serial.println(central.address());
     
-    while(central.connected()){
-      int rssi = central.rssi();  
-      int txPower = -59;
-      int n = 3; 
-//      distance = (pow(10.0, (txPower - rssi) / (10.0 * n))) * 100 ;
-      if (rssi != 0){
-        distance = kalmanFilter(rssi);
-      }
-      Serial.print("DISTANCE: "); 
-      Serial.print(distance); 
-      Serial.print("\r\n");
-      Serial.print("RSSI: "); 
-      Serial.print(rssi); 
-      Serial.print("\r\n");
-      int rssi1 = 0;
-       
-      char bleBuffer[200];
-      if (distance < -70){
-        sprintf(bleBuffer, "OUT OF RANGE!");
-      }
-      else{
-        sprintf(bleBuffer, "Within Range");
-      }
-      
-//      Serial.print("  RSSI3: "); 
-//      Serial.print(rssi);
-//      Serial.print("\r\n");
-
-      stringCharacteristic.writeValue(bleBuffer);
-      memset(bleBuffer, 0, 200); 
-      delay(250);
+  while(central.connected()){
+      raw_rssi  = central.rssi();  
+     
+      if (raw_rssi != 0){
+        filtered_rssi = kalmanFilter(raw_rssi);
+        //distance = (pow(10.0, (txPower - kalmanFilter(rssi)) / (10.0 * n))) * 100 ;   
+  
+        int rssi1 = 0;
+         
+        ///char bleBuffer[200];
+        //Serial.print(filtered_rssi);
+        if (filtered_rssi <= thresh){
+          B = true;
+          //Serial.print("  OUT OF RANGE!");
+          //Serial.print("\r\n"); 
+        }
+        else{
+          B = false;
+          //Serial.print("  Within Range");
+          //Serial.print("\r\n"); 
+        }
+  
+        int curr;
+        curr = B;
+        arr[9] = arr[8];
+        arr[8] = arr[7];
+        arr[7] = arr[6];
+        arr[6] = arr[5];
+        arr[5] = arr[4];
+        arr[4] = arr[3];
+        arr[3] = arr[2];
+        arr[2] = arr[1];
+        arr[1] = arr[0];
+        arr[0] = curr;
+        output = grab(arr);
+      }  
+      delay(100);
     }
 
     Serial.print("Disconnected from central MAC: ");
